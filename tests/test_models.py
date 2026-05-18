@@ -15,7 +15,7 @@ from mino.training.train import _complex_pair_phase_loss, _complex_pair_relative
 
 def test_all_models_preserve_shape() -> None:
     x = torch.randn(2, 1, 32, 32)
-    for name in ["MiNO", "MiNO-Core", "MiNO-Plus", "FNOStyle", "WNOStyle", "PDNOStyle", "LocalKernel", "UNetStyle"]:
+    for name in ["MiNO", "MiNO-Core", "MiNO-Plus", "FNOStyle", "WNOStyle", "PDNOStyle", "LocalKernel", "UNetStyle", "HybridSpectralUNet"]:
         model = build_model(name)
         y = model(x)
         assert y.shape == x.shape
@@ -23,7 +23,7 @@ def test_all_models_preserve_shape() -> None:
 
 def test_all_models_support_channel_change() -> None:
     x = torch.randn(2, 3, 32, 32)
-    for name in ["MiNO", "MiNO-Core", "MiNO-Plus", "FNOStyle", "WNOStyle", "PDNOStyle", "LocalKernel", "UNetStyle"]:
+    for name in ["MiNO", "MiNO-Core", "MiNO-Plus", "FNOStyle", "WNOStyle", "PDNOStyle", "LocalKernel", "UNetStyle", "HybridSpectralUNet"]:
         model = build_model(name, in_channels=3, out_channels=1)
         y = model(x)
         assert y.shape == (2, 1, 32, 32)
@@ -174,6 +174,28 @@ def test_learned_transported_landing_decoder_is_finite() -> None:
     assert diagnostics["prediction"].shape == x.shape
     assert torch.isfinite(diagnostics["transported_landing_norm"])
     assert torch.isfinite(diagnostics["transported_landing_gate"])
+
+
+def test_mino_plus_field_corrector_is_finite() -> None:
+    x = torch.randn(1, 3, 32, 32)
+    for input_mode in ("input_only", "input_core", "input_core_carrier"):
+        model = build_model(
+            "MiNO-Plus",
+            in_channels=3,
+            out_channels=1,
+            model_kwargs={
+                "field_corrector": "hybrid",
+                "field_corrector_scale": 1.0,
+                "field_corrector_width": 8,
+                "field_corrector_input_mode": input_mode,
+                "width": 12,
+                "depth": 1,
+                "max_modes": 6,
+            },
+        )
+        diagnostics = model.forward_with_diagnostics(x)
+        assert diagnostics["prediction"].shape == (1, 1, 32, 32)
+        assert torch.isfinite(diagnostics["field_correction_norm"])
 
 
 def test_learned_transported_landing_decoder_is_transport_gated() -> None:

@@ -298,6 +298,7 @@ METRIC_FIELDS = (
     "test_route_mean",
     "test_raw_refine_correction_norm",
     "test_refine_correction_norm",
+    "test_field_correction_norm",
     "test_refine_lowpass_removed_norm",
     "test_refine_high_frequency_fraction",
     "test_pdo_identity_norm",
@@ -684,6 +685,10 @@ def plus_model_kwargs(args: argparse.Namespace) -> dict[str, object]:
         "branch_synthesis": args.branch_synthesis,
         "edge_symbol_parameterization": args.edge_symbol_parameterization,
         "edge_symbol_strength": args.edge_symbol_strength,
+        "field_corrector": args.field_corrector,
+        "field_corrector_scale": args.field_corrector_scale,
+        "field_corrector_width": args.field_corrector_width,
+        "field_corrector_input_mode": args.field_corrector_input_mode,
     }
 
 
@@ -730,6 +735,10 @@ def plus_model_variant(args: argparse.Namespace) -> str:
         f"_brdiv{args.branch_diversity_weight:g}"
         f"_edgesym{args.edge_symbol_parameterization}"
         f"_edgestr{args.edge_symbol_strength:g}"
+        f"_fcorr{args.field_corrector}"
+        f"_fcscale{args.field_corrector_scale:g}"
+        f"_fcw{args.field_corrector_width}"
+        f"_fcin{args.field_corrector_input_mode}"
     )
 
 
@@ -1218,6 +1227,7 @@ def evaluate_branch_diagnostics(
     transported_input_norms: list[float] = []
     transported_landing_norms: list[float] = []
     transported_landing_gates: list[float] = []
+    field_correction_norms: list[float] = []
     model.eval()
     with torch.no_grad():
         for inputs, targets in loader:
@@ -1275,6 +1285,9 @@ def evaluate_branch_diagnostics(
             refine_norm = diagnostics.get("refine_correction_norm")
             if isinstance(refine_norm, Tensor):
                 refine_norms.append(float(refine_norm.item()))
+            field_correction_norm = diagnostics.get("field_correction_norm")
+            if isinstance(field_correction_norm, Tensor):
+                field_correction_norms.append(float(field_correction_norm.item()))
             raw_refine_norm = diagnostics.get("raw_refine_correction_norm")
             if isinstance(raw_refine_norm, Tensor):
                 raw_refine_norms.append(float(raw_refine_norm.item()))
@@ -1394,6 +1407,7 @@ def evaluate_branch_diagnostics(
         "test_route_mean": sum(route_means) / max(len(route_means), 1),
         "test_raw_refine_correction_norm": sum(raw_refine_norms) / max(len(raw_refine_norms), 1),
         "test_refine_correction_norm": sum(refine_norms) / max(len(refine_norms), 1),
+        "test_field_correction_norm": sum(field_correction_norms) / max(len(field_correction_norms), 1),
         "test_refine_lowpass_removed_norm": sum(refine_removed_norms) / max(len(refine_removed_norms), 1),
         "test_refine_high_frequency_fraction": sum(refine_hf_fractions) / max(len(refine_hf_fractions), 1),
         "test_pdo_identity_norm": sum(pdo_norms) / max(len(pdo_norms), 1),
@@ -1607,6 +1621,9 @@ def run_training_once(
         "branch_synthesis": args.branch_synthesis,
         "edge_symbol_parameterization": args.edge_symbol_parameterization,
         "edge_symbol_strength": args.edge_symbol_strength,
+        "field_corrector": args.field_corrector,
+        "field_corrector_scale": args.field_corrector_scale,
+        "field_corrector_width": args.field_corrector_width,
         "highfreq_cutoff": args.highfreq_cutoff,
         "core_warmup_epochs": args.core_warmup_epochs,
         "freeze_refinement_epochs": args.freeze_refinement_epochs,
@@ -2174,6 +2191,14 @@ def resolve_campaign_defaults(args: argparse.Namespace) -> argparse.Namespace:
             args.plus_local_refine_scale = 0.03
         if args.plus_route_bias_init == -1.5:
             args.plus_route_bias_init = -5.0
+        if args.field_corrector == "none":
+            args.field_corrector = "hybrid"
+        if args.field_corrector_scale == 0.0:
+            args.field_corrector_scale = 1.0
+        if args.field_corrector_width == 32:
+            args.field_corrector_width = 48
+        if args.learning_rate == 1e-4:
+            args.learning_rate = 2e-4
         if args.plus_wavefront_confidence_scale == 0.0:
             args.plus_wavefront_confidence_scale = 2.5
         if args.plus_refine_lowpass_cutoff == 0.0:
@@ -2253,9 +2278,11 @@ def resolve_campaign_defaults(args: argparse.Namespace) -> argparse.Namespace:
                 args.progress_every_epochs = 6
         if args.campaign == "helmholtz_highk_8gb":
             if args.helmholtz_profile == "default":
-                args.helmholtz_profile = "local_8gb"
+                args.helmholtz_profile = "competitive_8gb"
             if args.batch_size == 2:
                 args.batch_size = 1
+            if args.field_corrector_width == 48:
+                args.field_corrector_width = 32
             if args.helmholtz_residual_loss_weight == 0.01:
                 args.helmholtz_residual_loss_weight = 0.015
             if args.complex_pair_loss_weight == 0.0:
@@ -2303,6 +2330,41 @@ def resolve_campaign_defaults(args: argparse.Namespace) -> argparse.Namespace:
                 args.epochs = 24
             if args.progress_every_epochs == 0:
                 args.progress_every_epochs = 4
+        elif args.helmholtz_profile == "competitive_8gb":
+            # Field-accuracy profile for testing whether the MiNO carrier-bound
+            # core plus an identity-canonical spectral/U-shaped resolvent
+            # corrector can become competitive with FNO/UNO-style Helmholtz
+            # baselines.  This is a benchmark profile, not the clean mechanism
+            # profile used for branch attribution.
+            args.loss_configs = "field_only" if args.loss_configs == ",".join(CAMPAIGN_LOSS_CONFIGS[args.campaign]) else args.loss_configs
+            args.num_canonical_branches = 1
+            args.plus_width = 24
+            args.plus_depth = 1
+            args.plus_max_modes = 4
+            args.plus_transport_stencil = 2
+            args.transported_decoder_channels = 4
+            args.plus_local_refine_scale = 0.0
+            args.field_corrector = "hybrid"
+            args.field_corrector_scale = max(float(args.field_corrector_scale), 1.0)
+            args.field_corrector_width = max(int(args.field_corrector_width), 64)
+            if args.field_corrector_input_mode == "input_core_carrier":
+                args.field_corrector_input_mode = "input_only"
+            args.core_field_weight = 0.0
+            args.residual_energy_weight = 0.0
+            args.route_l1_weight = 0.0
+            args.canonical_loss_weight = 0.0
+            args.symbol_order_loss_weight = 0.0
+            args.symbol_seminorm_loss_weight = 0.0
+            args.symbol_identity_loss_weight = 0.0
+            args.packet_space_loss_weight = 0.0
+            args.highfreq_core_loss_weight = 0.0
+            args.core_warmup_epochs = 0
+            args.freeze_refinement_epochs = 0
+            args.learning_rate = max(float(args.learning_rate), 3e-4)
+            if args.epochs == CAMPAIGN_EPOCHS["helmholtz_highk_8gb"]:
+                args.epochs = 24
+            if args.progress_every_epochs == 0:
+                args.progress_every_epochs = 4
         elif args.helmholtz_profile == "paper_full":
             if args.progress_every_epochs == 0:
                 args.progress_every_epochs = 4
@@ -2323,6 +2385,12 @@ def resolve_campaign_defaults(args: argparse.Namespace) -> argparse.Namespace:
             args.complex_phase_loss_weight = max(float(args.complex_phase_loss_weight), 0.02)
             if args.progress_every_epochs == 0:
                 args.progress_every_epochs = 6
+        if args.field_corrector != "none" and args.field_corrector_scale > 0.0:
+            # The field corrector is the high-k identity-canonical/resolvent
+            # path.  The old mechanism profile warmed up only the core for half
+            # the run, which prevented this path from learning soon enough to
+            # compete with FNO/UNO-style field solvers.
+            args.core_warmup_epochs = min(args.core_warmup_epochs, max(1, args.epochs // 6))
     if args.campaign not in {
         "ablation",
         "ablation_core",
@@ -2449,7 +2517,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--helmholtz-profile",
         default="default",
-        choices=["default", "local_minimal", "local_midscale", "local_8gb", "paper_full", "flagship"],
+        choices=["default", "local_minimal", "local_midscale", "local_8gb", "competitive_8gb", "paper_full", "flagship"],
         help="Preset capacity/sample profile for Helmholtz campaigns; flagship is the high-k OOD protocol and is not run by default.",
     )
     parser.add_argument("--progress-every-epochs", type=int, default=0)
@@ -2576,6 +2644,24 @@ def parse_args() -> argparse.Namespace:
         help="Apply a learned edge-local packet symbol on retained canonical stencil entries.",
     )
     parser.add_argument("--edge-symbol-strength", type=float, default=0.5)
+    parser.add_argument(
+        "--field-corrector",
+        default="none",
+        choices=["none", "spectral", "unet", "hybrid"],
+        help=(
+            "Optional field-level identity-canonical residual corrector. "
+            "High-k Helmholtz profiles use this as a resolvent/stress-test path, "
+            "not as part of the packet-transport mechanism theorem."
+        ),
+    )
+    parser.add_argument("--field-corrector-scale", type=float, default=0.0)
+    parser.add_argument("--field-corrector-width", type=int, default=32)
+    parser.add_argument(
+        "--field-corrector-input-mode",
+        default="input_core_carrier",
+        choices=["input_only", "input_core", "input_core_carrier"],
+        help="Inputs supplied to the optional field corrector.",
+    )
     return resolve_campaign_defaults(parser.parse_args())
 
 
@@ -2658,6 +2744,10 @@ def main() -> None:
                                     "branch_diversity_weight": args.branch_diversity_weight,
                                     "edge_symbol_parameterization": args.edge_symbol_parameterization,
                                     "edge_symbol_strength": args.edge_symbol_strength,
+                                    "field_corrector": args.field_corrector,
+                                    "field_corrector_scale": args.field_corrector_scale,
+                                    "field_corrector_width": args.field_corrector_width,
+                                    "field_corrector_input_mode": args.field_corrector_input_mode,
                                     "plus_width": args.plus_width,
                                     "plus_depth": args.plus_depth,
                                     "plus_transport_stencil": args.plus_transport_stencil,
@@ -2723,6 +2813,10 @@ def main() -> None:
                                 "branch_diversity_weight": args.branch_diversity_weight,
                                 "edge_symbol_parameterization": args.edge_symbol_parameterization,
                                 "edge_symbol_strength": args.edge_symbol_strength,
+                                "field_corrector": args.field_corrector,
+                                "field_corrector_scale": args.field_corrector_scale,
+                                "field_corrector_width": args.field_corrector_width,
+                                "field_corrector_input_mode": args.field_corrector_input_mode,
                                 "plus_width": args.plus_width,
                                 "plus_depth": args.plus_depth,
                                 "plus_transport_stencil": args.plus_transport_stencil,
@@ -2788,6 +2882,10 @@ def main() -> None:
                 "branch_diversity_weight": args.branch_diversity_weight,
                 "edge_symbol_parameterization": args.edge_symbol_parameterization,
                 "edge_symbol_strength": args.edge_symbol_strength,
+                "field_corrector": args.field_corrector,
+                "field_corrector_scale": args.field_corrector_scale,
+                "field_corrector_width": args.field_corrector_width,
+                "field_corrector_input_mode": args.field_corrector_input_mode,
                 "plus_width": args.plus_width,
                 "plus_depth": args.plus_depth,
                 "plus_transport_stencil": args.plus_transport_stencil,
@@ -2924,6 +3022,10 @@ def main() -> None:
         "branch_prior_strength": args.branch_prior_strength,
         "branch_entropy_weight": args.branch_entropy_weight,
         "branch_diversity_weight": args.branch_diversity_weight,
+        "field_corrector": args.field_corrector,
+        "field_corrector_scale": args.field_corrector_scale,
+        "field_corrector_width": args.field_corrector_width,
+        "field_corrector_input_mode": args.field_corrector_input_mode,
         "core_warmup_epochs": args.core_warmup_epochs,
         "freeze_refinement_epochs": args.freeze_refinement_epochs,
         "runtime_flags": runtime_flags,

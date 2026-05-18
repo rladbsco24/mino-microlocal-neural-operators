@@ -104,6 +104,40 @@ class UNetStyleBaseline(nn.Module):
         return self.project(self.dec(fused))
 
 
+class HybridSpectralUNetCorrector(nn.Module):
+    """High-capacity residual corrector for identity-canonical PDE pieces.
+
+    The module is intentionally built from the same primitives used in the
+    benchmark baselines: a spectral branch, a local convolution branch, and a
+    U-shaped branch.  In MiNO it is used as a *residual* field corrector fed by
+    the microlocal core prediction and carrier paths, so it does not replace
+    the packet-matrix state.  It gives high-k Helmholtz profiles enough
+    field-level capacity to compete with strong Fourier/U-Net baselines while
+    keeping the canonical packet mechanism inspectable.
+    """
+
+    def __init__(self, in_channels: int = 1, out_channels: int = 1, width: int = 32) -> None:
+        super().__init__()
+        branch_width = max(int(width), 8)
+        unet_width = max(branch_width // 2, 8)
+        self.spectral = FNOStyleBaseline(in_channels=in_channels, out_channels=out_channels, width=branch_width)
+        self.local = LocalKernelBaseline(in_channels=in_channels, out_channels=out_channels, width=branch_width)
+        self.unet = UNetStyleBaseline(in_channels=in_channels, out_channels=out_channels, width=unet_width)
+        self.mix = nn.Conv2d(out_channels * 3, out_channels, kernel_size=1, bias=False)
+        with torch.no_grad():
+            self.mix.weight.zero_()
+            for channel in range(out_channels):
+                self.mix.weight[channel, channel, 0, 0] = 1.0 / 3.0
+                self.mix.weight[channel, out_channels + channel, 0, 0] = 1.0 / 3.0
+                self.mix.weight[channel, 2 * out_channels + channel, 0, 0] = 1.0 / 3.0
+
+    def forward(self, x: Tensor) -> Tensor:
+        spectral = self.spectral(x)
+        local = self.local(x)
+        unet = self.unet(x)
+        return self.mix(torch.cat([spectral, local, unet], dim=1))
+
+
 def build_baseline(name: str, in_channels: int = 1, out_channels: int = 1) -> nn.Module:
     normalized = name.lower()
     if normalized == "fnostyle":
@@ -116,4 +150,6 @@ def build_baseline(name: str, in_channels: int = 1, out_channels: int = 1) -> nn
         return LocalKernelBaseline(in_channels=in_channels, out_channels=out_channels)
     if normalized == "unetstyle":
         return UNetStyleBaseline(in_channels=in_channels, out_channels=out_channels)
+    if normalized == "hybridspectralunet":
+        return HybridSpectralUNetCorrector(in_channels=in_channels, out_channels=out_channels)
     raise ValueError(f"Unknown baseline: {name}")

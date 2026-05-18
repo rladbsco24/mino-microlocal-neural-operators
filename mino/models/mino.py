@@ -6,7 +6,14 @@ import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
 
-from .baselines import FNOStyleBaseline, LocalKernelBaseline, PDNOStyleBaseline, UNetStyleBaseline, WNOStyleBaseline
+from .baselines import (
+    FNOStyleBaseline,
+    HybridSpectralUNetCorrector,
+    LocalKernelBaseline,
+    PDNOStyleBaseline,
+    UNetStyleBaseline,
+    WNOStyleBaseline,
+)
 from .layers import (
     CanonicalPropagationLayer,
     DissipativePseudodifferentialBranch,
@@ -1630,6 +1637,10 @@ class MicrolocalNeuralOperatorPlus(nn.Module):
         branch_synthesis: str = "sum",
         edge_symbol_parameterization: str = "none",
         edge_symbol_strength: float = 0.5,
+        field_corrector: str = "none",
+        field_corrector_scale: float = 0.0,
+        field_corrector_width: int = 32,
+        field_corrector_input_mode: str = "input_core_carrier",
     ) -> None:
         super().__init__()
         self.core = MicrolocalNeuralOperatorCore(
@@ -1710,6 +1721,39 @@ class MicrolocalNeuralOperatorPlus(nn.Module):
         self.local_refine_scale = float(local_refine_scale)
         self.refine_lowpass_cutoff = float(refine_lowpass_cutoff)
         self.transport_highpass_cutoff = float(transport_highpass_cutoff)
+        self.field_corrector_scale = float(field_corrector_scale)
+        self.field_corrector_kind = field_corrector
+        self.field_corrector_input_mode = field_corrector_input_mode
+        if field_corrector_input_mode == "input_only":
+            field_corrector_channels = in_channels
+        elif field_corrector_input_mode == "input_core":
+            field_corrector_channels = in_channels + out_channels
+        elif field_corrector_input_mode == "input_core_carrier":
+            field_corrector_channels = in_channels + 3 * out_channels
+        else:
+            raise ValueError(f"Unsupported field_corrector_input_mode: {field_corrector_input_mode}")
+        if field_corrector == "none" or self.field_corrector_scale == 0.0:
+            self.field_corrector: nn.Module | None = None
+        elif field_corrector == "spectral":
+            self.field_corrector = FNOStyleBaseline(
+                in_channels=field_corrector_channels,
+                out_channels=out_channels,
+                width=field_corrector_width,
+            )
+        elif field_corrector == "unet":
+            self.field_corrector = UNetStyleBaseline(
+                in_channels=field_corrector_channels,
+                out_channels=out_channels,
+                width=max(field_corrector_width // 2, 8),
+            )
+        elif field_corrector == "hybrid":
+            self.field_corrector = HybridSpectralUNetCorrector(
+                in_channels=field_corrector_channels,
+                out_channels=out_channels,
+                width=field_corrector_width,
+            )
+        else:
+            raise ValueError(f"Unsupported field_corrector: {field_corrector}")
         self.local_refine = nn.Sequential(
             nn.Conv2d(out_channels * 2, local_refine_channels, kernel_size=3, padding=1),
             nn.GELU(),
@@ -1721,6 +1765,23 @@ class MicrolocalNeuralOperatorPlus(nn.Module):
         nn.init.zeros_(self.route.weight)
         if self.route.bias is not None:
             nn.init.constant_(self.route.bias, float(route_bias_init))
+
+    def _field_correction(
+        self,
+        x: Tensor,
+        core_prediction: Tensor,
+        transported_input: Tensor,
+        lifted: Tensor,
+    ) -> Tensor:
+        if self.field_corrector is None or self.field_corrector_scale == 0.0:
+            return core_prediction.new_zeros(core_prediction.shape)
+        if self.field_corrector_input_mode == "input_only":
+            corrector_input = x
+        elif self.field_corrector_input_mode == "input_core":
+            corrector_input = torch.cat([x, core_prediction], dim=1)
+        else:
+            corrector_input = torch.cat([x, core_prediction, transported_input, lifted], dim=1)
+        return self.field_corrector_scale * self.field_corrector(corrector_input)
 
     def _effective_refine_cutoff(self) -> float:
         cutoffs = [
@@ -1762,7 +1823,8 @@ class MicrolocalNeuralOperatorPlus(nn.Module):
         route = torch.sigmoid(self.route(refine_in))
         raw_refine_correction = self.local_refine_scale * route * high
         refine_correction = _lowpass_field(raw_refine_correction, self._effective_refine_cutoff())
-        return core_prediction + refine_correction
+        field_correction = self._field_correction(x, core_prediction, transported_input, lifted)
+        return core_prediction + refine_correction + field_correction
 
     def forward_with_diagnostics(self, x: Tensor) -> dict[str, object]:
         token_output, encoding, core_diagnostics = self.core.forward_tokens(x, return_diagnostics=True)
@@ -1795,7 +1857,8 @@ class MicrolocalNeuralOperatorPlus(nn.Module):
         route = torch.sigmoid(self.route(refine_in))
         raw_refine_correction = self.local_refine_scale * route * high
         refine_correction = _lowpass_field(raw_refine_correction, self._effective_refine_cutoff())
-        prediction = core_prediction + refine_correction
+        field_correction = self._field_correction(x, core_prediction, transported_input, lifted)
+        prediction = core_prediction + refine_correction + field_correction
         removed_refine = raw_refine_correction - refine_correction
         highpass_cutoff = self.transport_highpass_cutoff if self.transport_highpass_cutoff > 0.0 else self._effective_refine_cutoff()
         return {
@@ -1826,6 +1889,7 @@ class MicrolocalNeuralOperatorPlus(nn.Module):
             "refine_field_norm": _field_norm(high),
             "raw_refine_correction_norm": _field_norm(raw_refine_correction),
             "refine_correction_norm": _field_norm(refine_correction),
+            "field_correction_norm": _field_norm(field_correction),
             "refine_lowpass_removed_norm": _field_norm(removed_refine),
             "core_high_frequency_norm": _field_norm(_highpass_field(core_prediction, highpass_cutoff)),
             "refine_high_frequency_norm": _field_norm(_highpass_field(refine_correction, highpass_cutoff)),
@@ -1898,4 +1962,6 @@ def build_model(
         return LocalKernelBaseline(in_channels=in_channels, out_channels=out_channels)
     if normalized == "unetstyle":
         return UNetStyleBaseline(in_channels=in_channels, out_channels=out_channels)
+    if normalized in {"hybridspectralunet", "hybridspectralunetcorrector"}:
+        return HybridSpectralUNetCorrector(in_channels=in_channels, out_channels=out_channels)
     raise ValueError(f"Unknown model: {name}")
