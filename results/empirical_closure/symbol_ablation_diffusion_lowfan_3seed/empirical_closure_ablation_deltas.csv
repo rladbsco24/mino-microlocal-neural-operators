@@ -1,2 +1,0 @@
-ablation,baseline_relative_l2,candidate_relative_l2,delta_packet_consistency,delta_phase_error,delta_relative_l2,delta_type,loss_config,scenario
-no_symbol,0.006535092291111748,0.006373735688005884,0.00012776286651690772,0.043257395426432366,-0.00016135660310586351,ablation_vs_full,proxy_0.10_0.05,diffusion_neumann_control

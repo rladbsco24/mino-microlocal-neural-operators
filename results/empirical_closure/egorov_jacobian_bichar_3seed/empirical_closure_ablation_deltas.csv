@@ -1,3 +1,0 @@
-ablation,baseline_relative_l2,candidate_relative_l2,delta_packet_consistency,delta_phase_error,delta_relative_l2,delta_type,loss_config,scenario
-no_symbol,0.425558731580774,0.46455907573302585,-265.09797393282247,-0.05419537425041199,0.03900034415225184,ablation_vs_full,proxy_0.20_0.05,wave_bicharacteristic_control
-no_transport,0.425558731580774,0.878787949681282,-2115.3089928968498,-0.009408344825108772,0.45322921810050804,ablation_vs_full,proxy_0.20_0.05,wave_bicharacteristic_control
