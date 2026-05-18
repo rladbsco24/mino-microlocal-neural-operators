@@ -1,0 +1,130 @@
+\section{Supplementary Proofs and Derivations}
+\label{app:proofs}
+
+\subsection{Proof anatomy of the finite transported-symbol perturbation bound}
+
+The proof of Theorem~\ref{thm:finite-transported-symbol} is short enough to appear in the main text, and its structure reveals what stronger continuous theorems preserve.
+
+\paragraph{Step 1: add and subtract the transported coefficient.}
+The only useful algebraic move is to add and subtract the mixed term $\symbolref_i a_{\hat\pi(i)}$. This is what isolates transport error from symbol error.
+
+\paragraph{Step 2: factor the three mechanisms.}
+After that addition and subtraction, the difference splits into:
+\begin{enumerate}
+\item reference symbol times transport mismatch,
+\item symbol mismatch times approximate transported coefficient,
+\item residual.
+\end{enumerate}
+This is the whole reason for using a transported-symbol architecture rather than an undifferentiated interaction block.
+
+\paragraph{Step 3: apply envelopes.}
+The theorem then requires only the envelope hypotheses on transported coefficients and reference symbol size.
+
+\paragraph{Step 4: sum.}
+The $\ell^1$ bound is simply the sum of the pointwise bound over all packets.
+
+The bounded-stencil wave/FIO section preserves the same separation: even when several neighboring packets are retained, the dominant error breaks into transport, symbol, and residual components, summed over a small canonical stencil instead of a single destination.
+
+\subsection{Proof of Proposition~\ref{prop:transplantation}}
+
+The semi-discrete transplantation principle is immediate, but we record its logic in a more explicit way.
+
+Let $K_h$ be a discretized PDE solver and $\mathcal K_h=V_hK_hU_h$ its packet-basis realization. Suppose $\mathcal K_h$ belongs to the transported-symbol class $\mathfrak T(\eps_{\mathrm{tr}},\eps_{\mathrm{sym}},\eps_{\mathrm{res}})$. By definition this means there exists a reference transported-symbol action together with approximate transport, approximate symbol, and residual terms satisfying Assumption~\ref{ass:budgets} for the coefficient vectors of interest. The packet-space map induced by the approximate \MiNO\ layer therefore satisfies the exact hypotheses of Theorem~\ref{thm:finite-transported-symbol}. The coefficient-level error bound follows immediately. No PDE-specific argument is used at this stage; the PDE work is entirely in verifying membership of the packet-basis realization in the transported-symbol class.
+
+\subsection{Proof anatomy of Theorem~\ref{thm:cross-resolution}}
+
+The cross-resolution transfer theorem is finite and introduces a scale-indexed structure beyond the basic propagation theorem. Its proof has two steps.
+
+\paragraph{Step 1: split transferred error into model and reference parts.}
+Write
+\[
+P_{c\to f}\widehat{\transport}_c R_{f\to c} a_f - \transportref_f a_f
+=
+\bigl(P_{c\to f}\widehat{\transport}_c R_{f\to c} a_f
+-
+P_{c\to f}\transportref_c R_{f\to c} a_f\bigr)
++
+\bigl(P_{c\to f}\transportref_c R_{f\to c} a_f - \transportref_f a_f\bigr).
+\]
+The first bracket is the lifted coarse model error. The second bracket is the reference transfer defect.
+
+\paragraph{Step 2: apply prolongation stability and the two rate assumptions.}
+The prolongation stability constant $\kappa$ turns the coarse model error into a fine-resolution bound, while the second bracket is already controlled by the packetization defect rate. Summing the two contributions yields the final estimate
+\[
+\|P_{c\to f}\widehat{\transport}_c R_{f\to c} a_f - \transportref_f a_f\|_{\ell^1}
+\le
+\kappa C_c h^\beta + C_t h^\alpha.
+\]
+
+The reason this theorem matters is not its algebraic complexity. It matters because it separates two effects that standard neural-operator reporting often conflates: coarse learned error and intrinsic packet transfer defect across resolutions.
+
+\subsection{Why the global-scalar obstruction matters}
+
+Proposition~\ref{prop:global-scalar-obstruction} is simple and isolates a useful obstruction.
+
+Suppose a method corrects all packets using the same scalar gain. In a completely smooth and translation-invariant regime, such a simplification may be acceptable because neighboring packets can indeed share almost the same local symbol. The obstruction appears when local wavevector variation matters. Then two packets with the same incoming coefficient but different outgoing amplitude demands cannot both be matched. The proposition makes this impossibility precise in the simplest possible finite setting. It is the toy version of the microlocal claim that one should not compress a genuinely local transported-symbol law into a single global scalar.
+
+\subsection{A longer discussion of the identity-canonical reduction}
+
+Proposition~\ref{prop:low-frequency-reduction} says that \MiNO\ specializes to identity transport when the PDE regime has no leading nontrivial canonical motion. Many operator-learning benchmarks mix smooth and oscillatory families, and the reduction proposition explains how the architecture covers the identity-canonical pseudodifferential regime, with the usual spectral multiplier appearing as a further translation-invariant limit:
+\begin{enumerate}
+\item if the transport map is the identity,
+\item if the symbol is diagonal in packet coordinates,
+\item and if the packet frame degenerates to the global Fourier frame,
+\end{enumerate}
+then the model recovers a classical spectral residual law. Thus the microlocal design refines spectral neural operators by placing them in the correct subregime. Elliptic and parabolic operators stress the identity-canonical and dissipative-symbol branches instead of the nontrivial transport branch.
+
+\subsection{Proof sketch for a weighted packet norm variant}
+
+The finite landing lemma is written in $\ell^1$ because that is the exact norm formalized in Lean and because it makes the coefficient bookkeeping transparent.  The main theorem in the body uses the $\ell^2$ packet-matrix Schur transfer.  For applications that need importance weights, the same finite landing proof has the weighted variant
+\[
+\|a\|_{w,1}=\sum_{i=1}^n w_i |a_i|,
+\qquad w_i\ge 0.
+\]
+The same proof gives
+\[
+\|\widehat{\transport}a-\transportref a\|_{w,1}
+\le
+\Bigl(\sum_{i=1}^n w_i\Bigr)
+\bigl(B_s\eps_{\mathrm{tr}}+\eps_{\mathrm{sym}}B_a+\eps_{\mathrm{res}}\bigr),
+\]
+because each pointwise inequality is simply multiplied by $w_i$ before summation. This weighted variant is useful when packet importance depends strongly on scale or on physically important spatial regions.
+
+\subsection{How the theorem extends to bounded canonical stencils}
+
+The exact theorem of Section~\ref{sec:theory} moves each packet to one destination. The continuous section shows that the natural refinement is a bounded canonical stencil
+\[
+(\transportref a)_i = \sum_{j\in \mathcal N(i)} s^\star_{ij}\, a_j.
+\]
+The proof pattern would be the same:
+\begin{enumerate}
+\item compare the approximate stencil weights to the reference stencil weights,
+\item compare the approximate neighbor set to the reference neighbor set,
+\item absorb the difference between them into a residual.
+\end{enumerate}
+The bookkeeping becomes heavier, but the conceptual error split stays intact. This matters because the revised continuous theorem now predicts exactly this bounded-$K$ regime for short-time wave and canonical-graph FIO packet matrices.
+
+\subsection{PDE-wise derivation notes}
+
+\paragraph{Helmholtz.}
+The high-frequency inverse Helmholtz map is the most demanding oscillatory test of the transported-symbol law. In a resolved packet basis, outgoing energy should concentrate near branchwise propagated phase-space locations, but the inverse operator also carries a near-characteristic resolvent symbol and radiation condition. The theorem therefore reads as a direct estimate of how much the learned packet transport, branch router, radiation-aware symbol, and residual deviate from the resolved solver's packet realization. This is why high-$k$ Helmholtz naturally motivates the branch/resolvent extension rather than a single-graph wave-style profile.
+
+\paragraph{Wave propagation.}
+For the wave equation, transport error is physically interpretable as a wavefront drift. The theorem's first term is thus not only mathematically meaningful but diagnostically meaningful.
+
+\paragraph{Darcy.}
+For elliptic smoothing, the packet dynamics should be nearly static and the symbol should be smoothing. In this regime the theorem explains why the transport term should be small and why the low-frequency branch can dominate.
+
+\paragraph{Navier--Stokes.}
+For a one-step linearization, the packet transport term corresponds to advection while the symbol term corresponds to dissipative or pressure-related modulation. The theorem therefore matches the advection--diffusion decomposition at the semi-discrete level.
+
+\subsection{Role of the finite landing theorem in the JMLR manuscript}
+
+The finite transported-symbol theorem is the right \emph{machine-checked landing lemma} for this paper, not the flagship operator theorem:
+\begin{itemize}
+\item it isolates the transport, symbol, and residual budgets used by the architecture;
+\item it is explicit enough to be machine-checked;
+\item it is flexible enough to support bounded-stencil and cross-resolution finite bridges;
+\item it is narrow enough to interface cleanly with classical continuous inputs.
+\end{itemize}
+The operator-level spine is instead the $\ell^2$ Schur packet-matrix transfer in Theorem~\ref{thm:schur-packet-matrix} and its continuous wave realization in Theorem~\ref{thm:wave-mino-core}.  The finite lemma supplies the formal algebraic core that those operator-level statements use after the microlocal packet matrix has been reduced to retained stencils and explicit budgets.

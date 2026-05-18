@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Experiment outputs and large generated artifacts
+generated/
+tmp/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.zip
+wandb/
+runs/
+
+# Lean build artifacts
+lean/.lake/
+lean/.elan/
+
+# LaTeX build byproducts
+manuscript/**/*.aux
+manuscript/**/*.bbl
+manuscript/**/*.blg
+manuscript/**/*.brf
+manuscript/**/*.fdb_latexmk
+manuscript/**/*.fls
+manuscript/**/*.lof
+manuscript/**/*.log
+manuscript/**/*.lot
+manuscript/**/*.out
+manuscript/**/*.synctex.gz
+manuscript/**/*.toc
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo

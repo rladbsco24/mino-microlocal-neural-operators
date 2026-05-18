@@ -1,0 +1,65 @@
+\section{Machine-Proof Companion}
+\label{app:formalization}
+
+The Lean companion is intentionally finite.  It checks the landing layer reached after the classical microlocal estimates have produced finite packet tails, stencils, and budgets.  It does not formalize oscillatory integrals, stationary phase, or the full H\"ormander calculus.
+
+\subsection{Lean Scope}
+
+The Lean files in \codepath{lean/MiNO/Microlocal/} formalize:
+\begin{itemize}
+\item finite packet data structures and transported-symbol actions;
+\item pointwise and $\ell^1$ finite propagation bounds;
+\item bounded-stencil finite propagation;
+\item finite approximation and identity-canonical reduction lemmas;
+\item the global-scalar obstruction inequality;
+\item semi-discrete transplantation and cross-resolution transfer;
+\item canonical-tube, shell-counting, packet-tail, and abstract sparsity bridges;
+\item finite packet-matrix tail accumulation;
+\item restricted non-stationary-phase certificate handoff;
+\item finite FIO/$\Psi$DO/smoothing branch composition;
+\item finite packet-microscope ridge inclusion, fingerprint-budget stability,
+finite Egorov budget expansion, composition-budget accumulation, and
+learning-budget transfer for the extended theorem package.
+\end{itemize}
+This is the machine-checked finite part of the proof spine used by Sections~\ref{sec:theory}--\ref{sec:pde}.  The new $\ell^2$ packet-matrix Schur transfer is an elementary manuscript-level operator-norm step built on these finite row/column and tail objects; it is not advertised as a continuous Lean formalization.
+
+\clearpage
+\subsection{Proof-Status Inventory}
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Proof-status inventory for the manuscript.}
+\label{tab:proofstatus}
+\begin{tabular}{p{0.38\textwidth}p{0.24\textwidth}p{0.26\textwidth}}
+\toprule
+Claim layer & Status & Source \\
+\midrule
+Finite transported-symbol perturbation & fully formalized & Lean + Section~\ref{sec:theory} \\
+Bounded-stencil finite propagation & fully formalized & Lean + Section~\ref{sec:theory} \\
+Schur packet-matrix transfer & manuscript proof from finite row/column bounds & Theorem~\ref{thm:schur-packet-matrix} \\
+Cross-resolution transfer & fully formalized & Lean + Section~\ref{sec:theory} \\
+Canonical tube, shell count, packet tail & fully formalized finite bridge & Lean + Section~\ref{sec:continuous} \\
+Packet-matrix tail accumulation & fully formalized finite bridge & Lean \codepath{PacketMatrix.lean} \\
+Restricted non-stationary-phase handoff & formal finite wrapper with classical certificate input & Lean \codepath{NonstationaryPhase.lean} \\
+Unified FIO/$\Psi$DO/smoothing composition & formal finite wrapper with classical input & Lean \codepath{UnifiedCalculus.lean} \\
+Packet-microscope ridge inclusion and finite fingerprint/Egorov/composition budgets & fully formalized finite algebra & Lean \codepath{Flagship.lean} \\
+Representation separation, fingerprint compiler stability, local Helmholtz packet budget & manuscript proof with classical packet/FIO input & Appendix~\ref{app:flagship-theorems} \\
+Short-time half-wave off-graph decay & classical manuscript proof & Section~\ref{sec:continuous}, Appendix~\ref{app:continuous} \\
+Abstract canonical-graph packet sparsity & classical derivation plus finite bridge & Section~\ref{sec:continuous} \\
+Continuous transported-symbol reduction & classical manuscript proof & Section~\ref{sec:continuous}, Appendix~\ref{app:continuous} \\
+Hamiltonian metadata consistency & manuscript proof & Proposition~\ref{prop:hamiltonian-metadata-consistency} \\
+Microlocal Propagation Theorem for \MiNO-Core & classical continuous input + standard NN approximation + finite Lean bridge & Theorem~\ref{thm:wave-mino-core} \\
+PDE specialization statements & manuscript-level derivations and modeling assumptions & Section~\ref{sec:pde} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Executable Certificates}
+
+Two lightweight certificate paths accompany the Lean project.  The SymPy transport certificate expands the finite coefficient identity behind the transported-symbol bound.  The interval-style script checks concrete budget instances and writes the result to \codepath{certificates/interval\_check.json}.  These certificates are sanity checks for the finite algebra; they are not substitutes for the continuous microlocal argument.
+
+\subsection{Next Formalization Targets}
+
+The next useful Lean targets are weighted packet norms, confidence-weighted stencils, stronger finite packet-matrix residual operators, finite-to-asymptotic bridge lemmas indexed by the packet scale $h$, and finite matrix-norm versions of the Egorov and composition lemmas in Appendix~\ref{app:flagship-theorems}.  A more substantive proof-assistant target is a finite-frequency version of Calder\'on--Vaillancourt continuity for order-aware packet symbols, together with finite symplectic metadata maps and their canonical-defect estimates.  These targets are closer to the actual microlocal content than the elementary finite triangle inequalities, while still avoiding the full analytic burden of continuous oscillatory integrals. Full continuous microlocal formalization would require substantial new libraries for oscillatory integrals, pseudodifferential symbol classes, Hamiltonian flows, Sobolev spaces, and wavefront sets.

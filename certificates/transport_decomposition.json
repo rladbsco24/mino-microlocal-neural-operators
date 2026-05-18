@@ -1,0 +1,6 @@
+{
+  "identity_lhs": "-a*x + a_hat*x_hat + r",
+  "identity_rhs": "-a*x + a_hat*x_hat + r",
+  "difference_simplifies_to": "0",
+  "bound_template": "|a|*|x_hat - x| + |a_hat - a|*|x_hat| + |r|"
+}

@@ -1,0 +1,121 @@
+\section{Introduction}
+\label{sec:intro}
+
+Oscillatory solution operators have a representation that is largely invisible in point space and only partially visible in a global Fourier basis.  After wavepacket analysis, a short-time hyperbolic propagator becomes a sparse matrix whose rows and columns are indexed by phase-space packets, and whose significant entries lie near canonical relations.  Most neural operators instead build their primitive interactions from point correlations, global spectral multipliers, or generic attention maps \citep{kovachki2023neuraloperator,li2021fno,lu2021deeponet}.  Those primitives are effective in smooth, stationary, or translation-invariant regimes, but they do not expose the canonical packet geometry that controls high-frequency propagation.
+
+The primitive in this paper is a \emph{sparse canonical packet matrix}.  The underlying microlocal fact is classical: wave packets propagate along canonical relations and acquire local symbol factors.  The contribution is to make that fact an operator-learning object.  In \MiNO, packet coefficients and metadata form the network state, canonical packet motion is represented by an explicit learned branch, symbol modulation acts locally on transported packets, and the finite landing layer is bounded and machine-checkable.
+
+The resulting discrete question is not ``which pixels attend to which pixels?'' or ``which global Fourier modes are amplified?'' but rather: which packets with state $(x,\xi,\sigma)$ interact after canonical motion, with what local amplitude, and with what smoothing or dissipative remainder?  The Microlocal Neural Operator (\MiNO) is built around this packet-matrix question.
+
+This distinction matters outside wave propagation.  Hyperbolic operators occupy the nontrivial-canonical-graph regime of the calculus.  Elliptic parametrices occupy the identity-canonical pseudodifferential regime, where packets should mostly stay near their phase-space locations and the local symbol branch carries the leading action.  Parabolic semigroups occupy a dissipative-symbol regime, where the main microlocal effect is high-frequency damping rather than packet relocation.  Thus \MiNO's identity is not that packets must always move far.  Its identity is that the operator is exposed as a structured phase-space packet matrix: canonical transport when the PDE transports singularities, identity-canonical symbols when the PDE is elliptic, and dissipative symbols when the PDE smooths.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,>=Latex,font=\small]
+\draw[rounded corners,thick] (0,0) rectangle (3.3,2.6);
+\node[font=\bfseries] at (1.65,2.35) {Point space};
+\foreach \x in {0.7,1.4,2.1,2.8} {
+  \foreach \y in {0.7,1.35,2.0} {
+    \fill (\x,\y) circle (1.4pt);
+  }
+}
+\draw[->,thick] (0.7,0.7) -- (1.4,1.35);
+\draw[->,thick] (2.8,2.0) -- (2.1,1.35);
+\node[align=center] at (1.65,0.25) {local or global\\point mixing};
+
+\draw[rounded corners,thick] (4.0,0) rectangle (7.3,2.6);
+\node[font=\bfseries] at (5.65,2.35) {Frequency space};
+\draw[->] (4.55,0.55) -- (6.9,0.55) node[right] {$|\xi|$};
+\draw[thick,domain=4.55:6.8,samples=80] plot (\x,{1.2+0.25*sin(420*(\x-4.55))});
+\draw[thick,domain=4.55:6.8,samples=80,dashed] plot (\x,{1.75+0.18*sin(720*(\x-4.55))});
+\node[align=center] at (5.65,0.25) {global spectral\\multipliers};
+
+\draw[rounded corners,thick] (8.0,0) rectangle (11.3,2.6);
+\node[font=\bfseries] at (9.65,2.35) {Phase space};
+\draw[->] (8.45,0.45) -- (10.95,0.45) node[right] {$x$};
+\draw[->] (8.45,0.45) -- (8.45,2.05) node[above] {$\xi$};
+\draw[thick,->] (8.8,0.8) .. controls (9.35,1.45) and (10.0,1.65) .. (10.55,1.25);
+\fill[black] (8.8,0.8) circle (2pt);
+\fill[black] (9.35,1.35) circle (2pt);
+\fill[black] (10.05,1.55) circle (2pt);
+\fill[black] (10.55,1.25) circle (2pt);
+\node[align=center] at (9.65,0.25) {canonical packet\\propagation};
+\end{tikzpicture}
+\caption{Three operator-learning primitives. Point-space and frequency-space primitives can be effective in smooth or stationary regimes. \MiNO\ targets the oscillatory regime where localized packets move along a canonical relation in phase space.}
+\label{fig:primitive-comparison}
+\end{figure}
+
+The paper keeps one central theorem in focus.  Standard pseudodifferential and Fourier-integral-operator estimates supply the continuous wave/FIO structure; the operator layer supplies an $\ell^2$ sparse packet-matrix bound; and the finite layer supplies the packet landing lemma used by the architecture.  The finite landing lemma is checkable and implementable:
+\begin{itemize}
+\item an analytic discrete wavepacket frame defines packet coefficients and packet metadata;
+\item a reference operator acts on those coefficients through packet transport and local symbol modulation;
+\item an approximate \MiNO\ layer perturbs that transport, perturbs that symbol, and adds a residual truncation term;
+\item the resulting coefficient error is controlled by transport, symbol, and truncation budgets.
+\end{itemize}
+This finite law is the \emph{finite transported-symbol perturbation bound}.  It is the machine-checked algebraic landing layer of the manuscript and fixes the packet-level error budget used by the continuous and empirical sections.  The main theorem then upgrades those local budgets to an $\ell^2\to\ell^2$ sparse packet-matrix estimate through a Schur row/column transfer.
+
+The finite/discrete viewpoint supports two additional layers. The first is a \emph{continuous microlocal extension}: for hyperbolic pseudodifferential propagators with real principal symbol, standard H\"ormander calculus and packet almost-diagonalization imply that the continuous propagator reduces to a transported-symbol packet law plus a controllable residual. The second is \emph{semi-discrete PDE transplantation}: once a discretized PDE solver, written in a packet basis, is close to that transported-symbol form, the finite perturbation bound applies immediately. These layers turn the point-space/frequency-space dichotomy into a phase-space packet calculus.
+
+Two further pieces complete the theorem spine: a \emph{quantitative cross-resolution transfer theorem} and the main \emph{Microlocal Propagation Theorem for \MiNO-Core}. Resolution transfer becomes a scale-indexed theorem. The PDE layer becomes an explicit-rate approximation theorem combining bounded-stencil packet-matrix control, packet sparsity, wave off-graph decay, and compact-window neural approximation rates for the canonical map and local packet-kernel symbol.
+
+The theorem constrains the architecture without uniquely determining every implementation choice.  Its hypotheses identify the objects that must be approximated---a packet analysis/synthesis layer, a canonical transport map, a local symbol, and a residual/tail term.  The carrier-bound \MiNO\ implementation is one explicit realization of that template:
+\begin{enumerate}
+\item an analytic local Fourier / wavepacket tokenizer;
+\item a canonical propagation layer that updates packet states through a near-canonical transport map with local kernel interaction;
+\item a symbol-modulation branch that acts like a learned pseudodifferential multiplier on transported packets;
+\item a transported synthesis and high-frequency carrier path that makes moved metadata visible in the reconstructed field;
+\item an identity-canonical / low-frequency residual branch that preserves competitiveness on smooth regimes while still being interpretable as the pseudodifferential limit of the same packet calculus.
+\end{enumerate}
+Because the finite theorem is stated over packet coefficients, the mathematical object and implementation share the same coordinates.  High-frequency coefficients interact through transported metadata, local symbol weights, and a bounded retained stencil.  The comparison theorem is a representation-separation statement for restricted primitives: when a propagated packet leaves the identity tube and remains outside a fixed Fourier-limited residual span, explicit packet transport avoids an error floor that identity-local or Fourier-limited primitives cannot avoid within that span.  The matching experiment asks whether corrupting transported metadata damages the learned field map after low-frequency refinement is restricted and baselines receive the same local refinement advantage.  The controlled carrier-bound rows answer this question affirmatively.
+
+The contributions are best read in three layers.
+
+\paragraph{Conceptual contribution.}
+The central design hypothesis is that phase-space packet structure, not point correlation or global frequency filtering alone, is the right primitive to test for oscillatory and heterogeneous operator learning.  In the hyperbolic setting this structure becomes canonical propagation.  In elliptic and parabolic settings it becomes identity-canonical or dissipative symbol action.  \MiNO\ implements this hypothesis by making the packet the token, phase-space transport the primary update when transport is present, symbol modulation the amplitude and damping mechanism, and a residual branch the controlled place for smoothing and off-stencil effects.
+
+\paragraph{Mathematical contribution.}
+The operator-level theorem is a sparse packet-matrix theorem in the natural energy norm.  A Schur row/column transfer converts bounded canonical stencils and local entrywise transport/symbol defects into an $\ell^2\to\ell^2$ packet-matrix bound, and synthesis gives the corresponding $L^2$ field estimate.  The finite transported-symbol perturbation bound remains in the paper as the Lean-checked landing lemma: it decomposes a single landed packet into transport, symbol, and residual budgets, and its bounded-stencil and cross-resolution extensions are machine-checked in Lean~4. The continuous part then uses classical hyperbolic/FIO theory to prove off-canonical-tube decay for the short-time half-wave family, converts that decay into packet sparsity, and combines the pieces with compact-window neural approximation rates. A Hamiltonian metadata lemma separates cheap first-order Hamiltonian bias from a separable St\"ormer--Verlet branch that is symplectic by construction in packet metadata variables under a separable or splitting-based metadata model. The result is the Microlocal Propagation Theorem for \MiNO-Core: an explicit-rate field-facing theorem whose error depends on packet scale, stencil budget, covering radius, residual size, transported-synthesis/carrier defect, and the parameter budgets of the metadata and local packet-kernel symbol branches.  Elliptic and parabolic examples are interpreted through the same microlocal lens as identity-canonical pseudodifferential and dissipative-symbol regimes rather than as departures from the theory.
+
+\paragraph{Empirical and artifact contribution.}
+The source repository contains the PyTorch backbone, staged benchmark runner, imported TCNO/DMNO reference ingestion, symbolic certificates, interval-style checks, Lean companion, and manuscript source. The empirical evidence is organized around branch identifiability rather than a single leaderboard.  The carrier-bound protocol measures symplectic defect, high-frequency transport gating, packet-wavefront transport, Sobolev error, symbol order, core-only error, refinement energy, and same-refinement baselines.  In controlled wave probes, removing transport or randomizing metadata consistently degrades field error.  The learned finite-landing controls then show that improving the executable synthesis layer narrows the absolute-accuracy gap while preserving a transport penalty.
+
+\paragraph{Scope.}
+The primary theorem is short-time hyperbolic: the Microlocal Propagation Theorem treats the half-wave family in a no-caustic window.  Helmholtz appears through a local-window corollary and as an oscillatory stress test; Navier--Stokes appears only through a one-step transport--diffusion reading.  The continuous H\"ormander/FIO layer supplies the classical propagation input, and the Lean companion checks the finite packet landing layer.  The empirical section evaluates whether the resulting carrier-bound phase-space packet backbone uses transported metadata as a field-level mechanism.
+
+\section{Related Work}
+\label{sec:related}
+
+The most direct background is the neural-operator literature itself. The survey of \citet{kovachki2023neuraloperator} frames the field as learning maps between function spaces and places \FNO, DeepONet, geometric variants, and physics-informed variants within a shared operator-learning view. \FNO\ \citep{li2021fno} established the modern spectral-convolution template; DeepONet \citep{lu2021deeponet} emphasized branch--trunk decomposition; Geo-FNO \citep{li2023geofno} and related boundary/geometry-aware models such as BENO \citep{wang2024beno} show that geometry handling is essential when regular grids are no longer sufficient. CANO \citep{calvello2025cano} makes attention itself a function-space operator and proves a universal approximation theorem for transformer neural operators; DDO \citep{lim2025ddo} gives a parallel example of lifting a finite-dimensional generative primitive to function space. Multiwavelet and wavelet neural operators \citep{gupta2021multiwavelet,tripura2022wno} already suggest that localization beyond the global Fourier basis matters. The Windowed Fourier Propagator of \citet{cai2026wfp} is especially close in spirit for wave equations: it exploits frequency locality and compact windowed propagation in heterogeneous media. \MiNO\ differs by making the packet matrix explicitly phase-space-valued and by attaching the learned interaction to a canonical transport/symbol calculus rather than only to frequency-window locality.
+
+High-frequency Helmholtz is a separate comparison tier.  Specialized neural solvers such as MGCFNN \citep{xie2025mgcfnn} and probabilistic high-frequency Helmholtz operators \citep{zou2026probabilistichelmholtz} target the same phase-sensitive regime more directly than generic operator-learning baselines.  Classical numerical analysis also gives the correct scaling language: pollution-effect discussions and $hp$-FEM results compare degrees of freedom against the natural $k^d$ high-frequency resolution scale \citep{spence2023hpfempollution}.  For this reason, the Helmholtz rows in this paper are treated as a stress path unless the experiment reports frequency scaling, phase/radiation residuals, and specialized Helmholtz references.
+
+The comparison with spectral, U-shaped, continuous-attention, function-space diffusion, and discretization-aware operator models is therefore one of primitives.  \FNO\ and UNO-style models may learn transported laws implicitly through global frequency filters, multiscale decoding, or refinement.  CANO-style models emphasize continuum attention and discretization stability, while DDO-style models lift score-based diffusion to function space by perturbing functions with Gaussian-process noise and learning function-valued scores.  \MiNO\ targets the complementary oscillatory regime in which the sparse canonical packet matrix is exposed as network state.  Proposition~\ref{prop:primitive-level-separation} formalizes the single-packet primitive advantage: a global Fourier-limited residual or identity-local multiscale decoder cannot land a high-frequency packet that has moved along a nontrivial canonical graph unless the relevant transported subspace is represented indirectly.  The many-packet rank-growth theorem in Appendix~\ref{app:flagship-theorems} gives the corresponding representation-complexity reading: simultaneously landing many almost-orthogonal transported packets forces a fixed spectral/residual primitive to grow its effective rank, while a canonical packet matrix keeps bounded local degree.
+
+The signal-processing side of the story comes from wavelet, wavepacket, and curvelet representations \citep{mallat2009wavelet,candes2004curvelets,candesdemanet2005curvelet}. These constructions provide localized atoms that simultaneously carry spatial and frequency information, and the curvelet representation of wave propagators is a direct mathematical antecedent of the packet sparsity story used here. Classical microlocal analysis interprets oscillatory propagation in terms of phase-space motion and canonical relations \citep{alazardmicrolocal,hormander1985analysis3,zworski2012semiclassical}. FIO-inspired learning for wave-based imaging has also used this geometry as an architectural prior; FIONet \citep{kothari2020fionet}, for example, learns geometry associated with wave propagation in imaging inverse problems. On the pseudodifferential side, $\Psi$DONet \citep{bubba2021psidonet} gives an explicit precedent for neural architectures motivated by pseudodifferential operators and wavelet structure. \MiNO\ combines these two microlocal directions in a forward-operator setting: packet metadata become network state, canonical tubes become sparse stencil constraints, symbol amplitudes become learned local branches, and the finite truncation layer becomes machine-checkable.
+
+There is also a methodological contrast with architectures whose primary claim is scaling or generic attention. Those models can be strong empirical baselines, but their primitive remains indirect for the microlocal regime targeted here. \MiNO\ uses the microlocal viewpoint as the design principle: packet metadata form the state, canonical transport defines the update geometry, the $\ell^2$ packet-matrix theorem supplies the operator-level error language, and the finite landing lemma supplies the machine-checked algebraic core.
+
+\begin{table}[t]
+\centering
+\caption{Positioning of \MiNO\ relative to representative neural-operator primitives. The table is schematic: it records the primitive emphasized by each family, not every implementation detail.}
+\label{tab:related-positioning}
+\small
+\begin{tabular}{@{}p{0.14\textwidth}p{0.22\textwidth}p{0.14\textwidth}p{0.21\textwidth}p{0.11\textwidth}@{}}
+\toprule
+Method family & Main primitive & Phase-aware & Theorem role & Machine check \\
+\midrule
+\FNO & global Fourier multiplier & no & operator approximation theory & no \\
+\WNO & multiscale wavelet filtering & partial scale locality & localized approximation & no \\
+\PDNO & differential / local operator structure & indirect & PDE-informed operator bias & no \\
+\textsc{TCNO} & local phase transport & partial & finite transport decomposition & no \\
+\textsc{CANO} & continuous attention & no & continuum stability & no \\
+Grid-robust NO & discretization robustness & no & cross-grid stability & no \\
+DDO-style diffusion & function-valued score dynamics & no & function-space generative modeling & no \\
+\MiNO & sparse canonical packet matrix & yes & explicit-rate wave/FIO bridge & finite bridge \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The closest internal precedent is \textsc{TCNO}. Its learned local phase transport can be read as a low-order, local-Fourier special case of the present construction. \MiNO\ generalizes that idea from local phase ramps to packet metadata, bounded canonical stencils, symbol modulation, and a wave/FIO theorem that explains why sparse canonical packet matrices should be the right object in short-time hyperbolic regimes.
+
+The manuscript integrates five components that are usually separated: a concrete backbone, a rigorous discrete error law, a continuous microlocal reduction, a Lean finite-bridge companion, and an executable benchmark artifact. The resulting evidence standard is mechanism-first: canonical transport is credited only when transport corruption, metadata randomization, or identity-only transport measurably degrades field or packet diagnostics under the residual-limited protocol. The carrier-bound \MiNO\ rows satisfy this standard on controlled wave probes, which is the empirical mechanism claim made here.

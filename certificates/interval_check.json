@@ -1,0 +1,24 @@
+{
+  "exact_symbol_bound": [
+    0.0,
+    1.2
+  ],
+  "transport_error": [
+    0.0,
+    0.03
+  ],
+  "symbol_error": [
+    0.0,
+    0.02
+  ],
+  "coefficient_bound": [
+    0.0,
+    1.5
+  ],
+  "truncation_error": [
+    0.0,
+    0.01
+  ],
+  "pointwise_budget_upper": 0.07600000000000003,
+  "l1_budget_upper": 4.864000000000002
+}

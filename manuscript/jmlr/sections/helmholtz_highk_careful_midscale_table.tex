@@ -1,0 +1,28 @@
+\begin{table}[t]
+\centering
+\caption{Mid-scale \texttt{helmholtz\_highk\_careful} probe on \texttt{helmholtz\_highk\_positive}. Entries are three-seed means with standard deviations. The ablation block uses anisotropic packets, the \texttt{helmholtz\_resolvent} complex-pair symbol layer, two canonical branches, width 48, six modes, a transported landing decoder with eight channels, and 16 training epochs. The matched-profile block changes one calculus hook at a time. Lower is better.}
+\label{tab:helmholtz-highk-careful-midscale}
+\small
+\begin{tabular}{lccc}
+\toprule
+Ablation & Rel. $\ell^2$ & Phase error & Imaginary resolvent energy \\
+\midrule
+\texttt{full} & $0.503\pm0.008$ & $1.511\pm0.028$ & $0.0349$ \\
+\texttt{single\_branch} & $\mathbf{0.502}\pm0.005$ & $1.512\pm0.008$ & $0.0322$ \\
+\texttt{no\_transport} & $0.506\pm0.011$ & $\mathbf{1.509}\pm0.006$ & $0.0229$ \\
+\texttt{no\_transport\_no\_carrier} & $0.842\pm0.002$ & $1.499\pm0.015$ & $0.0424$ \\
+\texttt{no\_symbol} & $0.509\pm0.012$ & $1.602\pm0.022$ & $0.0000$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.6em}
+\begin{tabular}{lcc}
+\toprule
+Matched full-model profile & Rel. $\ell^2$ & Phase error \\
+\midrule
+\texttt{anisotropic\_gabor} + \texttt{helmholtz\_resolvent} & $0.503\pm0.008$ & $1.511\pm0.028$ \\
+\texttt{anisotropic\_gabor} + \texttt{spectral\_order} & $\mathbf{0.502}\pm0.007$ & $1.609\pm0.037$ \\
+\texttt{gabor\_gaussian} + \texttt{helmholtz\_resolvent} & $0.584\pm0.017$ & $\mathbf{1.486}\pm0.014$ \\
+\bottomrule
+\end{tabular}
+\end{table}

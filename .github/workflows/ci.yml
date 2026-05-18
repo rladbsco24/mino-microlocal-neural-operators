@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python-and-lean:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python package
+        run: python -m pip install -e . pytest
+      - name: Run tests
+        run: pytest
+      - uses: leanprover/lean-action@v1
+        with:
+          use-mathlib-cache: true
+          auto-config: false
+          lake-package-directory: lean
+      - name: Build Lean companion
+        run: |
+          cd lean
+          lake build

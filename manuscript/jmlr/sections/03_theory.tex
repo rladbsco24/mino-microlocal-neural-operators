@@ -1,0 +1,555 @@
+\section{Sparse Packet-Matrix Error Decomposition}
+\label{sec:theory}
+
+The previous section introduced the transported-symbol class as the finite version of canonical propagation.  The main mathematical object is now the sparse packet matrix itself.  The flagship norm is therefore the energy norm $\ell^2\to\ell^2$ on packet coefficients, and the finite $\ell^1$ identity below is used as a machine-checked landing lemma rather than as the main operator theorem.  The section first records the Schur packet-matrix transfer that turns local row/column budgets into an $\ell^2$ operator bound.  It then gives the Lean-facing finite transported-symbol lemma, whose proof is intentionally elementary.
+
+The finite theorem is the $K=1$ machine-checked core of Definition~\ref{def:theorem-grade-mino}: one dominant transported packet, one local symbol value, and one residual term. This is the exact statement formalized in Lean up to naming differences.
+
+This finite lemma is the landing layer for the main \MiNO-Core approximation theorem. The short-time wave-family bound assembled later has three additional ingredients:
+\begin{enumerate}
+\item the finite bookkeeping in the present section;
+\item the continuous wave/FIO packet sparsity theorem of Section~\ref{sec:continuous};
+\item the PDE-family transplantation step of Section~\ref{sec:pde}.
+\end{enumerate}
+The present section therefore establishes two bridges.  The Schur bridge is the operator-level packet-matrix statement used by the main theorem.  The finite algebraic bridge is the proof-assistant-checked landing layer that keeps the implementation and theorem budgets aligned.
+
+\subsection{Continuum \MiNO\ primitive}
+\label{sec:continuum-mino-primitive}
+
+The finite architecture is best understood as a discretization of a function-space packet operator, not merely as a neural network on a fixed grid.  Fix a semiclassical packet analysis/synthesis pair
+\[
+W_h:L^2(\R^d)\to \ell^2(\Gamma_h),
+\qquad
+W_h^\ast:\ell^2(\Gamma_h)\to L^2(\R^d),
+\]
+where $\Gamma_h$ is a compact phase-space packet cloud with packet radius comparable to $h^{1/2}$.  We use $d$ for raw phase-space distance and
+$d_h=h^{-1/2}d$ for packet-radius normalized distance.  The symbol $\delta_h$
+denotes the normalized covering defect, so the corresponding raw covering
+radius is $h^{1/2}\delta_h$.  The continuum \MiNO-Core primitive at scale $h$ is
+\[
+\mathcal M_{\theta,h}u
+=
+W_h^\ast
+\left[
+\mathcal T_{\widehat\kappa_\theta,\widehat s_\theta}(W_hu)
++R_{\theta,h}(W_hu)
+\right].
+\]
+Here $\widehat\kappa_\theta$ is the learned near-canonical packet map and $\widehat s_\theta$ is the learned local packet kernel.  On a retained canonical tube it is better to write this symbol as
+\[
+\widehat s_\theta(z,\nu;h),
+\qquad
+\nu=h^{-1/2}\bigl(z_\gamma-\widehat\kappa_\theta(z_\eta)\bigr),
+\]
+where $z_\eta$ is the source packet, $z_\gamma$ is the output packet, and $\nu$ is the packet-radius normalized local tube coordinate.  A source-only multiplier is the special case in which the dependence on $\nu$ is suppressed.  The discrete implementation replaces $W_h$ by the executable packet tokenizer, replaces the continuum stencil by top-$K$ packet neighbors in transported metadata geometry, and approximates $\widehat\kappa_\theta$ and $\widehat s_\theta$ by finite neural branches.
+
+This definition is the function-space primitive that corresponds to the Neural Operator/CANO style of formulation.  Theorem~\ref{thm:schur-packet-matrix} is the packet-matrix bridge for this primitive, while Theorem~\ref{thm:finite-transported-symbol} is only the finite landing lemma.  The main Microlocal Propagation Theorem, stated later as Theorem~\ref{thm:microlocal-propagation}, is the field-level statement that a short-time half-wave propagator lies near such a continuum packet primitive and that the finite \MiNO-Core realization inherits an explicit error law.
+
+\subsection{Operator-level packet-matrix bridge}
+\label{sec:operator-packet-matrix-bridge}
+
+\begin{theorem}[Schur packet-matrix transfer]
+\label{thm:schur-packet-matrix}
+Let $A,\widehat A:\ell^2(\Gamma_h)\to\ell^2(\Gamma_h)$ be two packet matrices on the active compact packet window.  Assume their difference $D=\widehat A-A$ has at most $K_{\mathrm{row}}$ significant entries per row and at most $K_{\mathrm{col}}$ significant entries per column after discarding a tail matrix $D_{\mathrm{tail}}$.  Suppose the retained entries satisfy the uniform envelope
+\[
+|D_{\gamma\eta}|
+\le
+E_{\mathrm{entry}}
+:=
+C_{\mathrm{tr}}\bigl(\epsilon_{\kappa,h}+\delta_h\bigr)
++C_{\mathrm{sym}}\epsilon_{\mathrm{sym}}
++C_{\mathrm{res}}\epsilon_{\mathrm{res}},
+\]
+and the discarded part satisfies
+\[
+\|D_{\mathrm{tail}}\|_{\ell^2\to\ell^2}
+\le
+E_{\mathrm{tail}}+E_{\mathrm{frame}}+E_{\mathrm{asymp}}+C_{\mathrm{cov}}\delta_h .
+\]
+Then
+\[
+\|\widehat A-A\|_{\ell^2\to\ell^2}
+\le
+\sqrt{K_{\mathrm{row}}K_{\mathrm{col}}}\,E_{\mathrm{entry}}
++E_{\mathrm{tail}}+E_{\mathrm{frame}}+E_{\mathrm{asymp}}+C_{\mathrm{cov}}\delta_h .
+\]
+In the bounded-degree canonical stencil regime $K_{\mathrm{row}},K_{\mathrm{col}}\le C_{\mathrm{deg}}K$, this gives
+\[
+\|\widehat A-A\|_{\ell^2\to\ell^2}
+\le
+C K\Bigl[
+C_{\mathrm{tr}}\bigl(\epsilon_{\kappa,h}+\delta_h\bigr)
++C_{\mathrm{sym}}\epsilon_{\mathrm{sym}}
++C_{\mathrm{res}}\epsilon_{\mathrm{res}}
+\Bigr]
++E_{\mathrm{tail}}+E_{\mathrm{frame}}+E_{\mathrm{asymp}}+C_{\mathrm{cov}}\delta_h .
+\]
+\end{theorem}
+
+\begin{proof}
+Schur's test gives
+\[
+\|D_{\mathrm{ret}}\|_{\ell^2\to\ell^2}
+\le
+\Bigl(\sup_\gamma \sum_\eta |D_{\gamma\eta}|\Bigr)^{1/2}
+\Bigl(\sup_\eta \sum_\gamma |D_{\gamma\eta}|\Bigr)^{1/2}.
+\]
+The row sum is at most $K_{\mathrm{row}}E_{\mathrm{entry}}$ and the column sum is at most $K_{\mathrm{col}}E_{\mathrm{entry}}$.  Adding the tail, frame, asymptotic, and covering terms by the triangle inequality gives the first estimate.  The second follows from the bounded-degree hypothesis.
+\end{proof}
+
+Theorem~\ref{thm:schur-packet-matrix} is the norm upgrade used by the main PDE theorem.  It is still finite, but it is an operator theorem rather than a coefficient-counting theorem.  The old $\ell^1$ bound below remains useful because it is the exact algebra checked in Lean and because it identifies the same transport, symbol, and residual budgets at the level of individual landed packets.
+
+\subsection{Assumptions}
+
+Let $a\in\C^n$ be an input coefficient vector. Let $\transportref$ be the reference transported-symbol operator from Definition~\ref{def:reference-operator}, and let $\widehat{\transport}$ be the approximate \MiNO\ layer from Definition~\ref{def:approx-layer}. We assume the following coefficient-level budgets for some nonnegative constants
+\[
+\eps_{\mathrm{tr}},\qquad
+\eps_{\mathrm{sym}},\qquad
+\eps_{\mathrm{res}},\qquad
+B_a,\qquad
+B_s.
+\]
+
+\begin{assumption}[Finite transport, symbol, and residual budgets]
+\label{ass:budgets}
+For every packet index $i\in I$,
+\begin{align}
+\bigl|a_{\hat\pi(i)} - a_{\pi^\star(i)}\bigr| &\le \eps_{\mathrm{tr}}, \label{eq:htr}\\
+\bigl|\symbolhat_i - \symbolref_i\bigr| &\le \eps_{\mathrm{sym}}, \label{eq:hsym}\\
+\bigl|\rho_i(a)\bigr| &\le \eps_{\mathrm{res}}, \label{eq:hres}\\
+\bigl|a_{\hat\pi(i)}\bigr| &\le B_a, \label{eq:hcoeff}\\
+\bigl|\symbolref_i\bigr| &\le B_s. \label{eq:href}
+\end{align}
+\end{assumption}
+
+Assumption~\ref{ass:budgets} is exactly the form one expects from a finite packet approximation. Equation~\eqref{eq:htr} measures transport mismatch after a finite matching has already been chosen, \eqref{eq:hsym} measures symbol mismatch, and \eqref{eq:hres} measures residual truncation. Bounds \eqref{eq:hcoeff} and \eqref{eq:href} are envelope assumptions used to convert those mismatches into coefficient errors.  All absolute values in this section are complex moduli.  The proof is therefore the same triangle-inequality proof as in the real finite Lean specialization.
+
+It is important not to confuse this finite coefficient budget with the geometric transport budget used in the main Microlocal Propagation Theorem.  For the continuous theorem, the natural quantity is a canonical-map or packet-kernel mismatch, for example
+\[
+\widetilde\eps_\kappa
+:=
+\sup_{z\in\Omega_T}
+d\bigl(\widehat\kappa_\theta(z),\kappa_t(z)\bigr),
+\qquad
+\eps_{\kappa,h}:=h^{-1/2}\widetilde\eps_\kappa,
+\qquad
+\eps_{\mathrm{ker}}
+:=
+\sup_{\eta}
+\sum_{\gamma}
+\bigl|
+\widehat K^{\mathrm{tr}}_{\gamma\eta}
+-K^{\star,\mathrm{tr}}_{\gamma\eta}
+\bigr|.
+\]
+Here $\widetilde\eps_\kappa$ is measured in raw phase-space units, while
+$\eps_{\kappa,h}$ is the corresponding packet-radius normalized error.
+$K^{\star,\mathrm{tr}}$ and $\widehat K^{\mathrm{tr}}$ are the reference and learned transported packet kernels before the residual is added.  Under the standard packet-overlap Lipschitz estimate on the compact phase window, the classical bridge has the form
+\[
+\eps_{\mathrm{ker}}
+\le
+C_{\mathrm{ov}}\bigl(\eps_{\kappa,h}+\delta_h\bigr)
+=
+C_{\mathrm{ov}}\bigl(h^{-1/2}\widetilde\eps_\kappa+\delta_h\bigr).
+\]
+Thus the main theorem uses geometric or kernel transport error.  The coefficient-level Assumption~\ref{ass:budgets} is only the finite landing lemma consumed after this continuous packet estimate has already produced a retained finite stencil.
+
+\subsection{Finite algebraic core}
+
+\begin{theorem}[Finite transported-symbol perturbation bound]
+\label{thm:finite-transported-symbol}
+Under Assumption~\ref{ass:budgets}, the pointwise coefficient error satisfies
+\[
+\bigl|(\widehat{\transport}a)_i - (\transportref a)_i\bigr|
+\le
+B_s\,\eps_{\mathrm{tr}} + \eps_{\mathrm{sym}}\, B_a + \eps_{\mathrm{res}}
+\qquad\text{for every } i\in I.
+\]
+Consequently, the induced $\ell^1$ coefficient error satisfies
+\[
+\|\widehat{\transport}a - \transportref a\|_{\ell^1}
+\le
+n\Bigl(B_s\,\eps_{\mathrm{tr}} + \eps_{\mathrm{sym}}\, B_a + \eps_{\mathrm{res}}\Bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+Fix $i\in I$. By Definitions~\ref{def:reference-operator} and \ref{def:approx-layer},
+\[
+(\transportref a)_i = \symbolref_i a_{\pi^\star(i)},
+\qquad
+(\widehat{\transport}a)_i = \symbolhat_i a_{\hat\pi(i)} + \rho_i(a).
+\]
+Subtracting and adding the term $\symbolref_i a_{\hat\pi(i)}$ gives
+\begin{align*}
+(\widehat{\transport}a)_i - (\transportref a)_i
+&=
+\symbolhat_i a_{\hat\pi(i)} + \rho_i(a) - \symbolref_i a_{\pi^\star(i)}\\
+&=
+\symbolref_i\bigl(a_{\hat\pi(i)}-a_{\pi^\star(i)}\bigr)
+ + (\symbolhat_i-\symbolref_i)a_{\hat\pi(i)}
+ + \rho_i(a).
+\end{align*}
+Taking absolute values and applying the triangle inequality,
+\begin{align*}
+\bigl|(\widehat{\transport}a)_i - (\transportref a)_i\bigr|
+&\le
+\bigl|\symbolref_i\bigr|\,\bigl|a_{\hat\pi(i)}-a_{\pi^\star(i)}\bigr|
+ + \bigl|\symbolhat_i-\symbolref_i\bigr|\,\bigl|a_{\hat\pi(i)}\bigr|
+ + \bigl|\rho_i(a)\bigr|.
+\end{align*}
+Assumption~\ref{ass:budgets} then yields
+\[
+\bigl|(\widehat{\transport}a)_i - (\transportref a)_i\bigr|
+\le
+B_s\,\eps_{\mathrm{tr}} + \eps_{\mathrm{sym}}\,B_a + \eps_{\mathrm{res}}.
+\]
+Summing over all $i\in I$ gives
+\begin{align*}
+\|\widehat{\transport}a - \transportref a\|_{\ell^1}
+&=
+\sum_{i=1}^n \bigl|(\widehat{\transport}a)_i - (\transportref a)_i\bigr|\\
+&\le
+\sum_{i=1}^n \Bigl(B_s\,\eps_{\mathrm{tr}} + \eps_{\mathrm{sym}}\,B_a + \eps_{\mathrm{res}}\Bigr)\\
+&=
+n\Bigl(B_s\,\eps_{\mathrm{tr}} + \eps_{\mathrm{sym}}\,B_a + \eps_{\mathrm{res}}\Bigr).
+\end{align*}
+This proves both statements.
+\end{proof}
+
+In plain language: if the packet goes to approximately the right phase-space location, arrives with approximately the right amplitude, and leaves only a small residual, then the layer approximates the reference transported-symbol law. The proof decomposition is complete: every error falls into one of the three architectural categories:
+\begin{enumerate}
+\item the packet goes to the wrong place or wrong local wavevector state;
+\item the packet arrives with the wrong symbol value;
+\item the neglected residual is too large.
+\end{enumerate}
+This is the algebraic meaning of the microlocal primitive. The PDE approximation theorem is obtained by adding the continuous packet theorem that supplies a sparse transported-symbol reference law and the learned-network estimates that make the three budgets small.
+
+\paragraph{Example.}
+Take $n=4$ packets with $B_a=B_s=1$. Suppose the approximate transport has budget $\eps_{\mathrm{tr}}=0.10$, the symbol branch has budget $\eps_{\mathrm{sym}}=0.05$, and the residual branch has budget $\eps_{\mathrm{res}}=0.02$. The pointwise coefficient envelope is
+\[
+E_\infty
+=
+B_s\eps_{\mathrm{tr}}+\eps_{\mathrm{sym}}B_a+\eps_{\mathrm{res}}
+=
+0.17,
+\]
+and the conservative $\ell^1$ bound is $4E_\infty=0.68$. More importantly, the decomposition identifies the branch-level error that would dominate if the finite budgets were realized by training: here the transport budget contributes $0.10$ of the $0.17$ pointwise envelope. The theorem is therefore useful as an error language for diagnostics and architecture design, while the empirical ablations determine which budgets are actually controlled by the trained model.
+
+\subsection{Approximation corollary}
+
+\begin{corollary}[Finite budget corollary]
+\label{cor:approximation}
+Under Assumption~\ref{ass:budgets}, if
+\[
+n\Bigl(B_s\,\eps_{\mathrm{tr}} + \eps_{\mathrm{sym}}\,B_a + \eps_{\mathrm{res}}\Bigr)\le \eps,
+\]
+then
+\[
+\|\widehat{\transport}a - \transportref a\|_{\ell^1}\le \eps.
+\]
+\end{corollary}
+
+\begin{proof}
+This is immediate from Theorem~\ref{thm:finite-transported-symbol}.
+\end{proof}
+
+Corollary~\ref{cor:approximation} is simple but important. It turns the theorem into an explicit training target. If the learned transport map, learned symbol branch, and residual branch can drive their respective budgets below the stated threshold, the finite operator error falls below $\eps$. The conditional language is essential: this corollary does not prove that a particular neural network optimizer will learn the budgets. It states the exact finite consequence once transport, symbol, and residual errors have been controlled.
+
+\paragraph{Budget assumptions versus network approximation.}
+The learned-budget hypotheses in Assumption~\ref{ass:budgets} are where approximation theory and empirical diagnostics enter. Section~\ref{sec:network-realizable-wave} supplies the rate theorem for the flagship short-time wave family: under compact-window $C^r$ assumptions on the canonical map $\kappa_t$ and transported symbol $s_t$, the metadata and symbol branches approximate those objects with explicit neural-network rates, which then feed into the finite bound here. The theorem establishes realizability of the PDE operator class by the theorem-grade \MiNO-Core architecture; the proxy-loss and ablation protocol measure whether training drives the relevant budgets down.
+
+\subsection{Bounded canonical stencil extension}
+
+The previous theorem is the exact $K=1$ core. The next theorem is the finite bounded-stencil extension that matches the revised theorem-grade \MiNO\ subclass more closely.
+
+\begin{theorem}[Bounded canonical stencil propagation]
+\label{thm:stencil-propagation}
+Fix a stencil budget $K\in\N$. Let
+\[
+({\transportref}^{(K)} a)_i
+=
+\sum_{m=1}^{K} s^\star_{i,m}\, a_{\pi^\star_m(i)},
+\qquad
+({\widehat{\transport}}^{(K)} a)_i
+=
+\sum_{m=1}^{K} \hat s_{i,m}\, a_{\hat\pi_m(i)} + \rho_i(a).
+\]
+Assume that for every packet index $i$ and slot $m$,
+\begin{align*}
+|a_{\hat\pi_m(i)}-a_{\pi_m^\star(i)}| &\le \eps_{\mathrm{tr}},\\
+|\hat s_{i,m}-s^\star_{i,m}| &\le \eps_{\mathrm{sym}},\\
+|a_{\hat\pi_m(i)}| &\le B_a,\\
+|s^\star_{i,m}| &\le B_s,
+\end{align*}
+and that $|\rho_i(a)|\le \eps_{\mathrm{res}}$ for every $i$. Then
+\[
+\bigl|({\widehat{\transport}}^{(K)}a)_i-({\transportref}^{(K)}a)_i\bigr|
+\le
+K\bigl(B_s\eps_{\mathrm{tr}}+\eps_{\mathrm{sym}}B_a\bigr)+\eps_{\mathrm{res}}
+\]
+for every $i$, and consequently
+\[
+\|{\widehat{\transport}}^{(K)}a-{\transportref}^{(K)}a\|_{\ell^1}
+\le
+n\Bigl(K\bigl(B_s\eps_{\mathrm{tr}}+\eps_{\mathrm{sym}}B_a\bigr)+\eps_{\mathrm{res}}\Bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+Subtract the two stencil actions and add-subtract the mixed terms $s^\star_{i,m}a_{\hat\pi_m(i)}$ slotwise. For each fixed output packet $i$, this gives
+\[
+({\widehat{\transport}}^{(K)}a)_i-({\transportref}^{(K)}a)_i
+=
+\sum_{m=1}^{K}
+\Bigl[
+s^\star_{i,m}\bigl(a_{\hat\pi_m(i)}-a_{\pi_m^\star(i)}\bigr)
++
+(\hat s_{i,m}-s^\star_{i,m})a_{\hat\pi_m(i)}
+\Bigr]
++
+\rho_i(a).
+\]
+Taking absolute values, applying the triangle inequality, and using the uniform per-slot envelopes yields
+\[
+\bigl|({\widehat{\transport}}^{(K)}a)_i-({\transportref}^{(K)}a)_i\bigr|
+\le
+\sum_{m=1}^{K}\bigl(B_s\eps_{\mathrm{tr}}+\eps_{\mathrm{sym}}B_a\bigr)+\eps_{\mathrm{res}},
+\]
+which is the first claim. Summing over $i$ gives the $\ell^1$ bound.
+\end{proof}
+
+Theorem~\ref{thm:stencil-propagation} is the exact finite bridge between the machine-checked core and the continuous bounded-stencil theorem of Section~\ref{sec:continuous}. It says that once a canonical tube has reduced the true packet matrix to at most $K$ significant interactions per output packet, the same transport/symbol/residual bookkeeping survives with only a factor of $K$.
+
+\subsection{Quantitative cross-resolution transfer}
+
+The theorem above controls one fixed packet system. For neural operators, however, a central scientific question is whether a packetized model trained or validated on one resolution transfers in a controlled way to another. The next theorem gives an explicit finite rate statement for the simplest such protocol.
+
+Let coarse packet coefficients live in $\C^{n_c}$ and fine packet coefficients in $\C^{n_f}$. Let
+\[
+R_{f\to c}:\C^{n_f}\to\C^{n_c},
+\qquad
+P_{c\to f}:\C^{n_c}\to\C^{n_f}
+\]
+denote restriction and prolongation maps. Let $\transportref_c$ be a coarse reference transported-symbol operator, $\transportref_f$ a fine reference operator, and $\widehat{\transport}_c$ an approximate coarse \MiNO\ layer. The transferred fine predictor is
+\[
+P_{c\to f}\widehat{\transport}_c R_{f\to c}.
+\]
+
+\begin{theorem}[Quantitative cross-resolution transfer]
+\label{thm:cross-resolution}
+Fix a fine input coefficient vector $a_f\in\C^{n_f}$ and suppose that:
+\begin{enumerate}
+\item the prolongation map is $\ell^1$-stable with constant $\kappa\ge 0$, meaning
+\[
+\|P_{c\to f}x-P_{c\to f}y\|_{\ell^1}
+\le
+\kappa \|x-y\|_{\ell^1}
+\qquad\text{for all }x,y\in\C^{n_c};
+\]
+\item the coarse approximation error obeys
+\[
+\|\widehat{\transport}_c R_{f\to c} a_f - \transportref_c R_{f\to c} a_f\|_{\ell^1}
+\le
+C_c h^\beta;
+\]
+\item the reference transfer defect obeys
+\[
+\|P_{c\to f}\transportref_c R_{f\to c} a_f - \transportref_f a_f\|_{\ell^1}
+\le
+C_t h^\alpha.
+\]
+\end{enumerate}
+Then the transferred coarse predictor satisfies
+\[
+\|P_{c\to f}\widehat{\transport}_c R_{f\to c} a_f - \transportref_f a_f\|_{\ell^1}
+\le
+\kappa C_c h^\beta + C_t h^\alpha.
+\]
+\end{theorem}
+
+\begin{proof}
+Write
+\[
+P_{c\to f}\widehat{\transport}_c R_{f\to c} a_f - \transportref_f a_f
+=
+\bigl(P_{c\to f}\widehat{\transport}_c R_{f\to c} a_f
+-
+P_{c\to f}\transportref_c R_{f\to c} a_f\bigr)
++
+\bigl(P_{c\to f}\transportref_c R_{f\to c} a_f - \transportref_f a_f\bigr).
+\]
+Set
+\[
+\Delta_{\mathrm{model}}
+:=
+\|P_{c\to f}\widehat{\transport}_c R_{f\to c} a_f
+-
+P_{c\to f}\transportref_c R_{f\to c} a_f\|_{\ell^1},
+\qquad
+\Delta_{\mathrm{ref}}
+:=
+\|P_{c\to f}\transportref_c R_{f\to c} a_f
+-
+\transportref_f a_f\|_{\ell^1}.
+\]
+Applying the triangle inequality and then the $\ell^1$ stability of $P_{c\to f}$ gives
+\begin{align*}
+\|P_{c\to f}\widehat{\transport}_c R_{f\to c} a_f - \transportref_f a_f\|_{\ell^1}
+&\le \Delta_{\mathrm{model}}+\Delta_{\mathrm{ref}}\\
+&\le
+\kappa\|\widehat{\transport}_c R_{f\to c} a_f
+-\transportref_c R_{f\to c} a_f\|_{\ell^1}
++\Delta_{\mathrm{ref}}.
+\end{align*}
+The two assumed rate bounds then yield the claim.
+\end{proof}
+
+The scale-indexed theorem is materially stronger than the single-resolution bound: it introduces a scale parameter, separates \emph{model error on the coarse packet system} from \emph{reference inconsistency across packet resolutions}, and yields an explicit transfer rate. In the PDE sections below, microlocal analysis justifies decay of the reference defect term for suitably nested packet systems and short-time wave-type propagators.
+
+\begin{corollary}[Machine-checked bounded-stencil transfer bridge]
+\label{cor:stencil-transfer-bridge}
+Fix a stencil budget $K\in\N$ and let the coarse operator be a theorem-grade \MiNO\ block
+\[
+({\widehat{\transport}_c}^{(K)} a)_i
+=
+\sum_{m=1}^{K}\hat s_{i,m}\,a_{\hat\pi_m(i)}+\rho_i(a)
+\]
+with reference coarse operator
+\[
+({\transportref_c}^{(K)} a)_i
+=
+\sum_{m=1}^{K}s^\star_{i,m}\,a_{\pi_m^\star(i)}.
+\]
+Assume the slotwise transport, symbol, residual, coefficient, and reference-symbol envelopes of Theorem~\ref{thm:stencil-propagation}. Assume also that the prolongation map is $\ell^1$-stable with constant $\kappa\ge 0$ and that the lifted coarse reference differs from the fine reference by a tail-plus-cover defect:
+\[
+\bigl\|P_{c\to f}{\transportref_c}^{(K)}R_{f\to c}a_f-\transportref_f a_f\bigr\|_{\ell^1}
+\le E_{\mathrm{tail}}+E_{\mathrm{cover}}.
+\]
+Then
+\[
+\bigl\|P_{c\to f}{\widehat{\transport}_c}^{(K)}R_{f\to c}a_f-\transportref_f a_f\bigr\|_{\ell^1}
+\le
+\kappa\,n_c\Bigl(K(B_s\eps_{\mathrm{tr}}+\eps_{\mathrm{sym}}B_a)+\eps_{\mathrm{res}}\Bigr)
+{}+
+E_{\mathrm{tail}}+E_{\mathrm{cover}}.
+\]
+If in addition
+\[
+n_c\Bigl(K(B_s\eps_{\mathrm{tr}}+\eps_{\mathrm{sym}}B_a)+\eps_{\mathrm{res}}\Bigr)\le C_c h^\beta,
+\qquad
+E_{\mathrm{tail}}+E_{\mathrm{cover}}\le C_t h^\alpha,
+\]
+then
+\[
+\bigl\|P_{c\to f}{\widehat{\transport}_c}^{(K)}R_{f\to c}a_f-\transportref_f a_f\bigr\|_{\ell^1}
+\le
+\kappa C_c h^\beta + C_t h^\alpha.
+\]
+\end{corollary}
+
+\begin{proof}
+Combine Theorem~\ref{thm:stencil-propagation} with Theorem~\ref{thm:cross-resolution}. The first theorem converts the coarse theorem-grade \MiNO\ budgets into an explicit coarse $\ell^1$ error. The second theorem lifts that error across resolutions and adds the reference tail-plus-cover defect. The scale-indexed statement is the same composition with the stated rate envelopes.
+\end{proof}
+
+\subsection{Interpretation}
+
+The theorem separates \emph{representation} from \emph{estimation}. It does not say how the approximate transport and symbol should be learned; it says that once they are learned to a certain budget, the resulting operator error is controlled. This is the finite analogue of why one studies Fourier integral operators and pseudodifferential operators separately from numerical schemes that approximate them.
+
+The theorem also clarifies why the transported-symbol split is more than an aesthetic preference. If one uses a generic token mixer, the transport and symbol terms are entangled. The present theorem shows that there is value in disentangling them, because the resulting budgets have different meanings and different PDE interpretations:
+\begin{itemize}
+\item transport error corresponds to phase-space drift;
+\item symbol error corresponds to amplitude or lower-order modulation error;
+\item residual error corresponds to finite-frame leakage and neglected interactions.
+\end{itemize}
+The cross-resolution theorem adds a second distinction that is crucial for neural operators: even when the coarse model error is small, the lifted predictor can still fail if the packet system itself does not transfer coherently across resolutions. This is why the manuscript treats packet resolution and packet transfer as mathematical objects rather than only as engineering details.
+
+\subsection{Empirical packet-budget bridge}
+\label{sec:empirical-packet-bridge}
+
+The finite theorem uses abstract budgets $(\eps_{\mathrm{tr}},\eps_{\mathrm{sym}},\eps_{\mathrm{res}})$. For benchmarks without a known reference canonical graph or symbol, the experiments estimate the three terms through packet-level proxy measurements in the same transport--symbol--residual language.
+
+For an input field $u$, target field $v$, and model prediction $\widehat v$, the code constructs packet encodings $W_h u$, $W_h v$, and the diagnostic packet output produced by \MiNO. It then records three proxies:
+\[
+\begin{aligned}
+\widehat\eps_{\mathrm{tr}}
+&= \text{energy-weighted packet transport mismatch},\\
+\widehat\eps_{\mathrm{sym}}
+&= \text{post-alignment packet amplitude mismatch},\\
+\widehat\eps_{\mathrm{res}}
+&= \|\widehat v-v\|_2/\|v\|_2 .
+\end{aligned}
+\]
+These proxies are deliberately weaker than the theorem hypotheses. They do not certify that Assumption~\ref{ass:budgets} holds. They do, however, give the falsifiable diagnostic that the theorem demands: if canonical propagation is the right primitive, improvements in field error on transport-sensitive regimes should usually be accompanied by lower transport or symbol proxies, not only by a larger physical-space refinement head.
+
+\paragraph{Identifiability constraint.}
+The theorem also explains why the empirical architecture must separate the microlocal branches from the residual branch. If an unrestricted physical-space refinement head is allowed to solve the whole task, the measured field error can improve while the transport and symbol budgets remain unidentified. The current runner therefore includes an identifiable variant of \MiNO-Plus in which the final refinement is treated as a small residual:
+\[
+\widehat u
+=
+\widehat u_{\mathrm{core}}
++ r_\theta(x)\, \eta_\theta(x),
+\qquad
+\|r_\theta\eta_\theta\|_2^2/\|u\|_2^2
+\ \text{penalized}.
+\]
+The training objective adds
+\[
+\lambda_{\mathrm{core}}\|\widehat u_{\mathrm{core}}-u\|_2^2
++
+\lambda_{\mathrm{res}}\frac{\|r_\theta\eta_\theta\|_2^2}{\|u\|_2^2}
++
+\lambda_{\mathrm{route}}\|r_\theta\|_1
++
+\lambda_{\mathrm{ord}}
+\bigl(\widehat m_\theta-m_{\mathrm{target}}\bigr)^2
+\]
+to the packet transport and symbol proxies.  Here $\widehat m_\theta$ is the executable log-frequency scaling proxy of the symbol branch.  It is a finite counterpart of the full $S^m_{1,0}$ seminorm target and makes the symbol-order claim measurable in the runner. This is the empirical counterpart of the residual and symbol budgets in Theorem~\ref{thm:finite-transported-symbol}. It makes the ablation test meaningful: if the field error remains unchanged after removing transport or symbol under this residual-limited, order-aware protocol, then the corresponding branch is not identified by that experiment.
+
+The stricter runner also uses a core-first schedule.  For the first warmup epochs the field loss is applied to $\widehat u_{\mathrm{core}}$ rather than the full \MiNO-Plus output, and the post-synthesis refinement parameters may be frozen.  After warmup, the refinement head is released as a low-pass residual.  This schedule is not part of the theorem; it is an optimization constraint designed to make the theorem's sufficient mechanism reachable by training.
+
+\subsection{From coefficient budgets to field-level interpretation}
+\label{sec:field-level-interpretation}
+
+The finite $\ell^1$ corollaries above state a conservative worst-case bound. The factor $n$ appears because the theorem sums a uniform pointwise coefficient envelope over all packet indices. The empirical regime is better described by the packet-local law
+\[
+\bigl|(\widehat{\transport}a)_i-(\transportref a)_i\bigr|
+\le
+E_\infty
+:=
+B_s\eps_{\mathrm{tr}}+\eps_{\mathrm{sym}}B_a+\eps_{\mathrm{res}},
+\]
+and this estimate is independent of the ambient packet count.
+
+To translate coefficient errors back to fields, let $W_h^\ast$ denote the packet synthesis map and suppose the frame has an upper synthesis bound
+\[
+\|W_h^\ast e\|_{L^2}\le B_W\|e\|_{\ell^2}.
+\]
+If the error is supported on an active packet set of size $s$ after canonical truncation, then
+\[
+\|W_h^\ast e\|_{L^2}
+\le
+B_W\sqrt{s}\,E_\infty.
+\]
+For the bounded-stencil theorem, the relevant support size is controlled by active input mass and the retained canonical stencil, not by the full ambient discretization. The continuous packet sparsity theorem in Section~\ref{sec:continuous} is precisely the mechanism that makes this distinction meaningful: off-graph decay turns the dense packet matrix into a sparse canonical stencil plus a tail. Thus the $\ell^1$ bounds are the safest machine-checked finite statements, while the field-level interpretation depends on frame bounds, active packet support, and truncation rates.
+
+\subsection{Machine-checked status}
+
+The finite landing spine is formalized in Lean~4 across the following modules:
+\begin{itemize}
+\item \codepath{FinitePacket.lean}, \codepath{Propagation.lean}, and \codepath{StencilPropagation.lean};
+\item \codepath{Approximation.lean}, \codepath{Reduction.lean}, and \codepath{Obstruction.lean};
+\item \codepath{Transplantation.lean};
+\item \codepath{ResolutionTransfer.lean};
+\item \codepath{StencilWaveTransfer.lean}.
+\end{itemize}
+The Lean theorem names are written against finite coefficient functions over \codepath{Fin n}. The manuscript statement above matches those files in substance:
+\begin{itemize}
+\item \codepath{pointwise\_propagation\_bound} corresponds to the pointwise estimate in Theorem~\ref{thm:finite-transported-symbol};
+\item \codepath{l1\_propagation\_bound} corresponds to the $\ell^1$ estimate in Theorem~\ref{thm:finite-transported-symbol};
+\item \codepath{pointwise\_stencil\_propagation\_bound} and \codepath{l1\_stencil\_propagation\_bound} correspond to Theorem~\ref{thm:stencil-propagation};
+\item \codepath{finite\_approximation\_corollary} corresponds to Corollary~\ref{cor:approximation}.
+\item \codepath{cross\_resolution\_transfer\_bound} and \codepath{cross\_resolution\_transfer\_rate} correspond to Theorem~\ref{thm:cross-resolution}.
+\item \codepath{bounded\_stencil\_transfer\_bound} and \codepath{bounded\_stencil\_wave\_transfer\_rate} correspond to Corollary~\ref{cor:stencil-transfer-bridge}.
+\end{itemize}
+The machine-checked spine establishes an important precedent: a neural-operator architecture can be organized around a proof-assistant-verified finite core. For short-time hyperbolic propagators, classical FIO theory produces exactly the transported-symbol and sparse canonical-stencil structure that the finite theorem assumes.

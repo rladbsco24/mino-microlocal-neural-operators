@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mino"
+version = "0.1.0"
+description = "Microlocal Neural Operator research scaffold"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "torch>=2.8",
+  "sympy>=1.14",
+]
+
+[tool.setuptools]
+packages = ["mino", "mino.data", "mino.metrics", "mino.models", "mino.training"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

@@ -1,0 +1,303 @@
+\section{Discrete Phase-Space Formulation}
+\label{sec:formulation}
+
+This section turns the phase-space primitive into finite objects. A packet carries a coefficient and metadata; a reference operator moves that packet through a transport map and multiplies it by a local symbol; an approximate \MiNO\ layer perturbs those two operations and leaves a residual. These are the objects formalized in Lean and the objects used later to connect the architecture to wave/FIO theory.
+
+\subsection{Analytic packet states}
+
+Let $I=\{1,\dots,n\}$ index a finite packet family. Each packet carries a coefficient and metadata:
+\[
+\packet_i = \bigl(a_i, x_i, \xi_i, \sigma_i\bigr),
+\]
+where $a_i\in\C$ is the coefficient, $x_i\in\R^d$ is a normalized position, $\xi_i\in\R^d$ is a normalized local wavevector, and $\sigma_i\in\R_+$ is a scale parameter. In the implementation, the packet family is obtained by patchifying the input field, windowing each patch, taking a local real-\FFT, and retaining a controlled set of local modes. This construction appears in \codepath{mino/models/wavepacket.py}.
+
+For the mathematical statements below, packet coefficients and symbols are complex-valued:
+$a_i,\symbolref_i,\symbolhat_i\in\C$.  This is the natural coefficient type for
+Gabor packets, local Fourier modes, FIO phases, and half-wave propagation.  The
+Lean companion formalizes the real finite landing layer; the manuscript uses the
+complex version because the same add--subtract proof only uses the complex
+modulus and the triangle inequality.
+
+The analytic tokenizer is deliberately \emph{not} fully learned. The point of the theorem spine is that packet identities and packet metadata should remain mathematically interpretable. Learning enters later, in the transport and symbol-modulation components. One may regard this as the phase-space analogue of fixing the Fourier basis in \FNO\ while learning the multiplier; the difference is that the present basis is local and metadata-aware.
+
+\subsection{Reference transported-symbol operators}
+
+The simplest discrete operator class we need is the following.
+
+\begin{definition}[Reference transported-symbol operator]
+\label{def:reference-operator}
+Let $a\in\C^n$ be the vector of packet coefficients. A \emph{reference transported-symbol operator} is an operator $\transportref:\C^n\to\C^n$ of the form
+\[
+(\transportref a)_i = \symbolref_i\, a_{\pi^\star(i)},
+\]
+where $\pi^\star:I\to I$ is a reference transport map and $\symbolref_i\in\C$ is a reference symbol value attached to packet $i$.
+\end{definition}
+
+The map $\pi^\star$ is the discrete stand-in for canonical propagation, while $\symbolref_i$ is the stand-in for a local amplitude factor. This class is intentionally minimal. It already captures the decisive microlocal split between \emph{where packets go} and \emph{how packets are modulated}.
+
+In the continuous language one would write an oscillatory operator as a Fourier integral operator plus lower-order corrections. Definition~\ref{def:reference-operator} is the finite packet counterpart of that decomposition and already explains the architecture.
+
+\subsection{Approximate \MiNO\ layers}
+
+The implemented model uses a more flexible layer. Besides perturbing the transport map and the symbol, it allows a residual term that collects truncation, neglected interactions, low-order effects, and finite-frame leakage.
+
+\begin{definition}[Approximate \MiNO\ layer]
+\label{def:approx-layer}
+An \emph{approximate \MiNO\ layer} is a map $\widehat{\transport}:\C^n\to\C^n$ of the form
+\[
+(\widehat{\transport} a)_i = \symbolhat_i\, a_{\hat\pi(i)} + \rho_i(a),
+\]
+where $\hat\pi:I\to I$ is the approximate transport map, $\symbolhat_i\in\C$ is the approximate symbol, and $\rho_i(a)$ is a residual term.
+\end{definition}
+
+The residual term is where the finite theorem makes room for practicality. In the implementation it absorbs the mismatch between the finite local packet frame and the idealized packet class, neglected off-stencil interactions, and any low-frequency remainder not represented by the transported-symbol path.
+
+\subsection{Theorem-grade \MiNO\ subclass}
+\label{sec:theorem-grade-mino}
+
+The executable code separates the theorem-facing Core from the empirical Plus model, but both share the same carrier-bound packet primitive. For the mathematics in this paper we isolate the narrower subclass, denoted \emph{\MiNO-Core}, and then treat the broader engineering model \emph{\MiNO-Plus} as an empirical enlargement of the same transported-packet architecture.
+
+\begin{definition}[Theorem-grade \MiNO\ block]
+\label{def:theorem-grade-mino}
+Fix a packet system at scale $h$ with packet centers $z_i=(x_i,\xi_i)$, raw
+phase-space distance $d$, normalized packet distance $d_h=h^{-1/2}d$, normalized
+covering defect $\delta_h$, canonical-tube radius parameter $\rho>0$, and stencil
+budget $K\in\N$.  Thus the raw covering radius is $h^{1/2}\delta_h$.  A
+\emph{theorem-grade \MiNO\ block} is an approximate layer of the form
+\[
+(\widehat{\transport}_h a)_i
+=
+\sum_{j\in \widehat\Pi_h(i)}
+\symbolhat_{h,ij}\, a_j + \rho_{h,i}(a)
+\]
+with the following additional restrictions:
+\begin{enumerate}
+\item \textbf{bounded canonical stencil:} each output packet uses at most $K$ source packets,
+\[
+\#\widehat\Pi_h(i)\le K;
+\]
+\item \textbf{canonical-tube localization:} every retained source packet lies inside a canonical tube of normalized radius $\rho+\delta_h$ around a learned near-canonical image,
+\[
+d_h\bigl(z_i,\widehat{\kappa}_h(z_j)\bigr)\le \rho+\delta_h
+\qquad\text{for every }j\in\widehat\Pi_h(i);
+\]
+\item \textbf{local packet-kernel law:} each coefficient $\symbolhat_{h,ij}$ is produced by a metadata-local branch and may depend on the source packet and the normalized tube coordinate $\nu_{ij}=h^{-1/2}(z_i-\widehat\kappa_h(z_j))$; source-only multipliers are the special case with no $\nu$ dependence;
+\item \textbf{transported field realization:} the inverse packet synthesis uses the learned final packet centers, and the high-frequency carrier is synthesized from transported input packet coefficients rather than from an unrestricted physical-space skip;
+\item \textbf{small residual:} all nonlocal leakage, unresolved multibranch effects, and low-frequency mismatch are placed in $\rho_{h,i}(a)$ and measured separately.
+\end{enumerate}
+\end{definition}
+
+Definition~\ref{def:theorem-grade-mino} is the mathematical class justified by the continuous theory. The repository implements its finite analogue as \MiNO-Core: a practical packet tokenizer, a top-$K$ truncated propagation kernel, a local symbol branch, transported synthesis, a transported high-frequency carrier, and an explicit low-frequency residual. The ideal-frame versus executable-tokenizer gap is measured by packetization defects and tokenizer diagnostics. The broader empirical model \MiNO-Plus keeps the same tokenizer and transported-symbol decomposition, but enlarges the propagation block with confidence-gated multi-stencil transport and adds a low-pass local field-space refinement head after synthesis.
+
+This theorem-grade class is the bounded-stencil, tube-truncated core of the broader implementation. The special case $K=1$ recovers the exact single-destination finite landing lemma formalized in Lean; the case $K>1$ is the natural target predicted by packet sparsity in the continuous theory. The theorem statements attach to \MiNO-Core. \MiNO-Plus is an empirical superset containing \MiNO-Core as the special case with unit confidence gates, no local post-synthesis refinement, and the same bounded canonical stencil.
+
+\subsection{From definitions to architecture}
+
+The architecture in \codepath{mino/models/mino.py} follows the finite definitions almost literally.
+
+\paragraph{Tokenizer.}
+The local Fourier tokenizer produces the finite packet family and metadata.  The executable frame menu has five levels: \texttt{local\_fft} for the fast legacy path, \texttt{gabor\_gaussian} for the theorem-aligned Gaussian packet path, \texttt{multiscale\_gabor} for scale stress tests, \texttt{anisotropic\_gabor} for rectangular packet windows in two principal orientations, and \texttt{directional\_gabor} for a richer axis-aligned directional packet family with short--long and long--short windows.  The last two options give elongated-packet probes and an explicit $E_{\mathrm{frame}}$ hook; full curvelet/shearlet scaling would require an additional tight directional frame construction.
+
+\paragraph{Canonical propagation layer.}
+The propagation block updates packet metadata and then applies local kernel mixing in the updated metadata geometry. The repository now exposes three transport parameterizations. The backward-compatible option, \texttt{mlp\_displacement}, predicts a direct displacement in $(x,\xi)$. The intermediate option, \texttt{hamiltonian\_euler}, learns a scalar Hamiltonian and applies one explicit Hamiltonian-vector-field step; it is useful as a cheap canonical-bias diagnostic, but it is not symplectic by construction. The structured option, \texttt{hamiltonian\_verlet}, learns a separable or splitting-biased Hamiltonian
+\[
+H_\theta(q,p;\tau)=V_\theta(q;\tau)+T_\theta(p;\tau),
+\qquad q=(y,x),\quad p=(k_y,k_x),
+\]
+with packet features $\tau$ held fixed during the metadata update, and applies the St\"ormer--Verlet composition
+\[
+p_{1/2}=p_0-\frac{\Delta}{2}\nabla_qV_\theta(q_0;\tau),\qquad
+q_1=q_0+\Delta\nabla_pT_\theta(p_{1/2};\tau),\qquad
+p_1=p_{1/2}-\frac{\Delta}{2}\nabla_qV_\theta(q_1;\tau).
+\]
+For fixed packet features this is a symplectic map in the metadata variables. This is an architectural bias for near-canonical metadata motion, not a general representation theorem for the nonseparable half-wave Hamiltonian $c(x)|\xi|$.  The main packet-matrix theorem only assumes a learned near-canonical map with the displayed transport budget; Verlet is one clean parameterization of that budget.
+
+In \MiNO-Core the resulting mixing is explicitly top-$K$ truncated in metadata space, so the retained interaction pattern matches the bounded-stencil hypothesis of Definition~\ref{def:theorem-grade-mino}. The backward-compatible code path computes a dense pairwise distance matrix before masking to top-$K$; the theorem-aligned profile keeps the same dense distance search but performs sparse top-$K$ aggregation after neighbor selection. Thus the mathematical stencil is bounded in both paths, while replacing dense distance evaluation by a genuine sparse-neighbor search remains a speed and memory optimization. In \MiNO-Plus the same top-$K$ primitive is retained, but the propagated message is multiplied by a learned confidence gate before local refinement.  The mechanism-identifiability profile adds a wavefront-aware confidence bias: packets with larger normalized $|\xi|$ receive higher transport-gate logits, making high-frequency routing visible to the transport diagnostics.  For finite-branch profiles the router can also use a frequency-sector warm start, \texttt{metadata\_frequency\_softmax}: learned metadata logits are added to a soft angular prior over packet wavevector sectors, giving a geometric initialization for the routing budget $E_{\mathrm{route}}$.
+
+\paragraph{Symbol modulation.}
+After transport, a separate branch modulates coefficients using a metadata-conditioned MLP. This is the analogue of a local pseudodifferential symbol.
+
+\paragraph{Low-frequency residual.}
+The spectral residual branch handles the identity-canonical and dissipative-symbol faces of the same calculus. A translation-invariant Fourier multiplier is the special case in which the symbol depends only on $\xi$; \MiNO's packet symbol branch allows the more general local packet-kernel form $m_\theta(x,\xi,\nu;h)$, with the residual path absorbing smoothing remainders, finite-frame leakage, and unresolved low-frequency components. In \MiNO-Plus this branch is complemented by a small local refinement head after inverse synthesis; this refinement is tracked separately as an empirical enlargement outside the theorem-facing Core class.
+
+\subsection{Why the architecture is split}
+
+The transport/symbol split is the central design claim. A generic token mixer can, in principle, represent both transport and amplitude modulation. The problem is that it does not state which of those is meant to be the primary primitive. A microlocal design should state this explicitly:
+\begin{enumerate}
+\item transport is the primary motion law;
+\item symbol modulation is a lower-order amplitude law;
+\item residual correction accounts for finite-frame and low-order mismatch.
+\end{enumerate}
+The theorem in the next section makes this split quantitative.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[>=Latex,font=\small,node distance=0.55cm]
+\node[draw,rounded corners,thick,minimum width=3.2cm,minimum height=0.75cm] (packet) {packet coefficients};
+\node[draw,rounded corners,thick,below left=0.75cm and 1.3cm of packet,minimum width=3.2cm,minimum height=0.75cm] (transport) {canonical transport};
+\node[draw,rounded corners,thick,below=0.75cm of packet,minimum width=3.2cm,minimum height=0.75cm] (symbol) {symbol modulation};
+\node[draw,rounded corners,thick,below right=0.75cm and 1.3cm of packet,minimum width=3.2cm,minimum height=0.75cm] (residual) {residual branch};
+\node[draw,rounded corners,thick,below=2.0cm of packet,minimum width=4.2cm,minimum height=0.75cm] (output) {reconstructed output};
+
+\draw[->,thick] (packet) -- (transport);
+\draw[->,thick] (packet) -- (symbol);
+\draw[->,thick] (packet) -- (residual);
+\draw[->,thick] (transport) -- (output);
+\draw[->,thick] (symbol) -- (output);
+\draw[->,thick] (residual) -- (output);
+
+\node[align=center,above=0.08cm of transport] {$\eps_{\mathrm{tr}}$};
+\node[align=center,above=0.08cm of symbol] {$\eps_{\mathrm{sym}}$};
+\node[align=center,above=0.08cm of residual] {$\eps_{\mathrm{res}}$};
+\node[align=center,right=0.7cm of output,text width=4.0cm] (bound)
+{$\| \widehat{\transport}a-\transportref a\|$\\ controlled by\\ transport + symbol + residual};
+\draw[->,thick] (output) -- (bound);
+\end{tikzpicture}
+\caption{Theorem--architecture correspondence. The finite propagation theorem assigns one error budget to each architectural branch, making the microlocal design directly falsifiable.}
+\label{fig:theorem-architecture}
+\end{figure}
+
+\subsection{Two useful finite baselines}
+
+Before stating the theorem, it is helpful to identify two reduced regimes.
+
+\begin{proposition}[Identity-canonical pseudodifferential reduction]
+\label{prop:low-frequency-reduction}
+Suppose that $\hat\pi(i)=i$ for every packet index and that the approximate symbol is metadata-local. Then the approximate \MiNO\ layer is an identity-canonical pseudodifferential action in packet coordinates:
+\[
+(\widehat{\transport}a)_i=\symbolhat_i a_i+\rho_i(a).
+\]
+If the symbol depends only on frequency metadata and the packet frame collapses to the global Fourier frame, this further reduces to a standard spectral-multiplier block.
+\end{proposition}
+
+\begin{proof}
+If $\hat\pi(i)=i$, then the displayed identity follows directly from Definition~\ref{def:approx-layer}. Ignoring the residual for the purpose of the reduction claim, this is diagonal in the packet basis and therefore represents a packetized pseudodifferential multiplier with identity canonical relation. When the packet frame is the global Fourier frame and the symbol is $x$-independent, diagonal action in packet coordinates is exactly global spectral multiplication. The residual branch then becomes an ordinary smoothing or spectral remainder.
+\end{proof}
+
+In smoothing regimes, \MiNO\ specializes the same packet calculus to the identity canonical relation.  Hyperbolic operators stress the transport branch, elliptic parametrices stress the local symbol branch, and parabolic updates stress dissipative symbol structure such as $m_\theta(x,\xi,\Delta t)\approx \exp[-\Delta t\,q_\theta(x,\xi)]$.
+
+The opposite reduced regime is a global-scalar interior law, which is useful precisely because it fails in the microlocal setting.
+
+\begin{proposition}[Global-scalar obstruction]
+\label{prop:global-scalar-obstruction}
+Let two packets $i,j$ have target outputs $y_i^\star=\symbolref_i a_{\pi^\star(i)}$ and $y_j^\star=\symbolref_j a_{\pi^\star(j)}$. For any scalar $c\in\C$,
+\[
+\max\{|ca_{\pi^\star(i)}-y_i^\star|,\ |ca_{\pi^\star(j)}-y_j^\star|\}
+\ge \frac12\,\bigl|y_i^\star-y_j^\star\bigr|
+\]
+whenever $a_{\pi^\star(i)}=a_{\pi^\star(j)}\neq 0$.
+\end{proposition}
+
+\begin{proof}
+Write $b=a_{\pi^\star(i)}=a_{\pi^\star(j)}\neq 0$. Then the two target outputs are $y_i^\star=\symbolref_i b$ and $y_j^\star=\symbolref_j b$. If both errors were strictly smaller than $\frac12 |y_i^\star-y_j^\star|$, the triangle inequality would give
+\[
+|y_i^\star-y_j^\star|
+\le |cb-y_i^\star| + |cb-y_j^\star|
+< \frac12 |y_i^\star-y_j^\star| + \frac12 |y_i^\star-y_j^\star|,
+\]
+a contradiction. Therefore at least one of the two errors is at least the stated lower bound.
+\end{proof}
+
+Proposition~\ref{prop:global-scalar-obstruction} is elementary, but it captures a real obstruction. Once two packets with the same incoming coefficient require different local symbol values, a single global scalar cannot match both. The point is not that scalar baselines are always bad, but that they are structurally incapable of representing packetwise amplitude separation once local wavevector variation matters.
+
+\section{The \MiNO\ Architecture}
+\label{sec:architecture}
+
+We summarize the executable model in a form aligned with the theory.
+
+\paragraph{Input and output.}
+The default code path assumes a real-valued field on a regular grid. The tokenizer converts the input into patch-local Fourier coefficients and packet metadata. The inverse synthesis reconstructs a field from the learned coefficients.  When a benchmark supplies genuine real/imaginary output channels, the training loop can additionally use explicit complex-pair relative and phase/coherence losses.  These losses are inert for scalar real-valued PDE rows; the artifact does not manufacture an imaginary channel from a real scalar field.
+
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[>=Latex,font=\scriptsize,node distance=0.55cm]
+\tikzstyle{block}=[draw,rounded corners,thick,align=center,minimum height=0.72cm]
+\tikzstyle{smallblock}=[draw,rounded corners,thick,align=center,minimum height=0.58cm]
+\tikzstyle{stream}=[draw,rounded corners,thick,align=center,minimum height=0.65cm,fill=black!3]
+
+\node[block,minimum width=2.65cm,fill=blue!5] (input) {input field\\$u(x)$ on grid};
+\node[block,minimum width=2.75cm,fill=blue!5,right=0.9cm of input] (patch) {patch + window\\localize in $x$};
+\node[block,minimum width=2.75cm,fill=blue!5,right=0.9cm of patch] (fft) {local \FFT\\localize in $\xi$};
+
+\node[stream,minimum width=3.0cm,below=0.85cm of fft,xshift=-1.65cm] (coeff) {coefficient stream\\packet amplitudes $a_i$};
+\node[stream,minimum width=3.0cm,below=0.85cm of fft,xshift=1.65cm] (meta) {metadata trunk\\$z_i=(x_i,\xi_i,\sigma_i)$};
+
+\node[smallblock,minimum width=2.85cm,fill=orange!8,below=0.95cm of meta] (transportnet) {transport trunk net\\$\widehat\kappa_\theta(z_i)$};
+\node[smallblock,minimum width=2.85cm,fill=orange!8,below=0.58cm of transportnet] (stencil) {canonical top-$K$ stencil\\tube-local neighbors};
+
+\node[smallblock,minimum width=2.85cm,fill=green!8,below=0.95cm of coeff] (coeffnet) {packet feature net\\hidden coefficients};
+\node[smallblock,minimum width=2.85cm,fill=green!8,below=0.58cm of coeffnet] (symbolnet) {symbol modulation net\\$m_\theta(z_i,z_j)$};
+
+\node[smallblock,minimum width=2.9cm,fill=red!7,right=0.9cm of stencil] (residual) {identity / residual path\\$\Psi$DO, smoothing, leakage};
+
+\node[block,minimum width=3.15cm,fill=purple!8,below=1.05cm of stencil,xshift=-1.55cm] (combine) {transported-symbol packet layer\\$\sum_{j\in\Pi_i}\widehat s_{ij}a_j+\rho_i(a)$};
+\node[block,minimum width=2.85cm,fill=purple!8,right=0.9cm of combine] (synth) {transported synthesis\\+ input carrier};
+\node[block,minimum width=2.35cm,fill=purple!8,right=0.9cm of synth] (output) {output field\\$\widehat v(x)$};
+
+\draw[->,thick] (input) -- (patch);
+\draw[->,thick] (patch) -- (fft);
+\draw[->,thick] (fft) |- (coeff);
+\draw[->,thick] (fft) |- (meta);
+
+\draw[->,thick] (meta) -- (transportnet);
+\draw[->,thick] (transportnet) -- (stencil);
+\draw[->,thick] (coeff) -- (coeffnet);
+\draw[->,thick] (coeffnet) -- (symbolnet);
+
+\draw[->,thick] (stencil) -- (combine);
+\draw[->,thick] (symbolnet) -- (combine);
+\draw[->,thick] (residual) |- (combine);
+\draw[->,thick] (meta.east) -| (residual.north);
+\draw[->,thick] (coeff.east) -| (residual.west);
+
+\draw[->,thick] (combine) -- (synth);
+\draw[->,thick] (synth) -- (output);
+
+\node[align=center,above=0.08cm of coeff] {DeepONet-like branch};
+\node[align=center,above=0.08cm of meta] {trunk over phase space};
+\node[align=center,below=0.12cm of combine,text width=8.2cm] {
+The learned operator acts on packet tokens, not raw pixels: the coefficient branch carries amplitudes,
+the metadata trunk predicts phase-space geometry, and the symbol branch modulates transported packets.};
+\end{tikzpicture}
+}
+\caption{Neural-network view of carrier-bound \MiNO.  The input field is first converted into packet coefficients and packet metadata.  Analogously to a branch--trunk split, the coefficient stream carries amplitudes while the metadata trunk carries phase-space state.  The central layer learns a bounded canonical stencil and local symbol modulation, and the reconstructed field uses transported synthesis plus a transported high-frequency input carrier.}
+\label{fig:mino-network-view}
+\end{figure}
+
+\paragraph{Propagation.}
+The propagation layer can use either a metadata-conditioned displacement MLP or the theorem-aligned separable Hamiltonian Verlet update described above.  The latter is the default in the mechanism-identifiability profile because it makes the transport branch symplectic by construction in packet metadata variables.  In \MiNO-Plus, the transport confidence gate may also receive a normalized high-frequency packet bias, so wavefront-bearing packets are pushed toward the transport branch rather than being absorbed entirely by post-synthesis refinement.
+
+\paragraph{Symbol branch.}
+The generic symbol branch takes packet features and updated metadata as input and returns scale and shift terms that modulate the propagated packet features; the shift is treated as an empirical local source/residual term, not as the theorem-facing symbol law. The theorem-grade object is a local packet kernel $s_\theta(z,\nu;h)$, where $\nu$ is the packet-radius normalized displacement inside the retained canonical tube. The implementation exposes a symbol-order parameter: the generic hyperbolic symbol branch defaults to order $0$, the identity-$\Psi$DO branch uses the configured order $m$, and the dissipative branch constrains the multiplier to $(0,1]$. The stricter \texttt{spectral\_order} parameterization is a source-only finite symbol proxy. It is multiplier-only: it removes feature-conditioned symbol gates and additive shifts, predicts packet multipliers from phase-space metadata, log radial frequency, and normalized frequency direction, then applies the fixed order weight $\langle\xi\rangle^m$. Equivalently, it is a finite shell-local approximation to the source-only special case
+\[
+\hat s_\theta(x,\xi)
+=
+\langle\xi\rangle^m\,b_\theta(x,\hat\xi,\log\langle\xi\rangle),
+\qquad \hat\xi=\xi/|\xi|,
+\]
+on the compact phase window retained by the packet frame.  The local-kernel theorem allows the richer dependence on $\nu$ and therefore uses the larger approximation dimension $m_\Omega+q_{\mathrm{loc}}$; the deployed \texttt{spectral\_order} profile corresponds to $q_{\mathrm{loc}}=0$.  This is a finite \(S^m\)-proxy: the order is explicit, log-frequency scaling is measurable, and the theorem-aligned runner can penalize deviation from a configured target order.  The code also exposes a finite first-seminorm proxy and an identity regularizer on the local tube and retained-edge symbol corrections, used as executable smoothness and attribution diagnostics.  The high-frequency runner therefore treats \texttt{source\_only\_symbol}, \texttt{no\_edge\_symbol}, and \texttt{no\_resolvent\_phase} as separate ablations rather than assuming that every local-kernel refinement is a field-error improvement.  Full $S^m_{1,0}$ enforcement would require higher symbol-seminorm control; the present branch supplies the finite symbol-calculus layer used by the mechanism profile.
+
+\paragraph{Calculus branches.}
+The current \MiNO-Plus code now exposes two optional branches that make the restricted H\"ormander-style interpretation explicit.  The identity-$\Psi$DO branch leaves packet metadata fixed and learns an order-weighted local symbol, representing elliptic parametrices and the $x$-dependent generalization of spectral multipliers.  The dissipative-$\Psi$DO branch applies a multiplier of the form
+\[
+m_\theta(x,\xi,\Delta t)=\exp[-\Delta t\,\operatorname{softplus}(q_\theta(x,\xi))],
+\]
+representing parabolic damping.  These branches are disabled by default in legacy benchmark configurations and enabled in the calculus-identifiability campaign, so the empirical comparison can ask whether each microlocal regime is actually being used.
+
+For nonlinear or quasilinear transport--diffusion problems, the intended calculus reading is an operator-splitting profile rather than a new unrelated architecture: an advective FIO branch transports high-frequency packets, a dissipative $\Psi$DO branch damps packet amplitudes according to a local symbol, and the residual path carries pressure, forcing, and unresolved closure effects.  This gives Navier--Stokes-style experiments a specific microlocal hook in the extension ledger, with branch ablations and coupling diagnostics deciding when the hook becomes an empirical claim.
+
+\paragraph{Branch-factored oscillatory mode.}
+Some oscillatory operators are better represented by a finite canonical relation than by a single canonical graph on the retained window.  The general extension is a finite FIO-sum mode, rather than a Helmholtz-only module: multiple canonical branches predict candidate packet transports, a tokenwise router assigns packet mass across branches, and the transported synthesis/carrier/landing path is applied branchwise before summation.  The router may be fully learned from metadata or initialized by the frequency-sector prior described above.  The default \MiNO\ profile remains the single-branch case $L=1$.  The optional branch-factored profile is activated when the PDE model or diagnostic campaign asserts a finite canonical-relation decomposition, and its theorem budget contains separate routing, branch cross-talk, per-branch transport/symbol, phase-factor, and finite-landing terms.  A high-$k$ Helmholtz branch probe therefore measures whether those finite-branch budgets are small at the tested resolution and training budget.
+
+\paragraph{Transported synthesis and residual branch.}
+The final \MiNO\ field realization has two transported paths.  Learned packet coefficients are synthesized at the final packet metadata, and a high-frequency carrier is synthesized from the input packet coefficients transported by the same metadata.  The implementation also exposes an optional transport-conditioned finite landing decoder.  Its inputs are the transported coefficient synthesis, transported input carrier, and low-pass lifted field; its convolutions are local and bias-free; and its output is multiplied by a transported-energy gate so that the learned landing correction vanishes when the transported paths vanish.  Its role is to reduce the executable landing defect tracked as $E_{\mathrm{land}}$ (or, in the nonlearned path, $E_{\mathrm{tsyn}}$ and $E_{\mathrm{car}}$).  The low-frequency branch is a compact spectral residual block, and the post-synthesis refinement head is projected through a low-pass filter in mechanism tests. This makes the refinement path a smoothing residual: it repairs low-order field mismatch while leaving high-frequency wavefront content to packet transport. The thesis of the paper is that each operator family should expose the microlocal structure it has: canonical motion for waves, identity-canonical local symbols for elliptic parametrices, dissipative symbols for parabolic smoothing, and explicit residuals for effects outside the retained packet law.
+
+\paragraph{Theorem-aligned training mode.}
+The code exposes a stricter mechanism-identification mode in which the core is optimized before the local refinement path is released. During the warmup epochs the primary field loss is applied to the core prediction, the post-synthesis refinement parameters can be frozen, and the released refinement is low-pass filtered. This training path forces the packet transport and symbol branches to carry the high-frequency part before the empirical residual head corrects smooth mismatch.
+
+\paragraph{Complexity.}
+If $n$ is the number of packets and $w$ is the hidden width, the raw distance computation is quadratic in $n$, while the interaction kernel used by \MiNO-Core and \MiNO-Plus is explicitly truncated to a bounded stencil of size $K$. The executable propagation law realizes the logical top-$K$ packet interaction assumed by the finite theorem. The \texttt{sparse\_topk} option avoids dense aggregation after the top-$K$ set has been found; the nearest-neighbor search remains dense.
+
+\paragraph{Artifact status.}
+The repository under \codepath{MiNO/} contains working carrier-bound \MiNO-Core and \MiNO-Plus PyTorch models, tests, a Lean companion, a unified scenario registry over synthetic and cached PDE families, official baseline wrappers borrowed from the TCNO benchmark code, and a staged benchmark runner. The Lean component verifies the finite landing layer; the completed branch-identifiability run shows that the final carrier-bound architecture makes transport corruption field-causal on controlled wave probes.

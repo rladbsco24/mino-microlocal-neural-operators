@@ -1,0 +1,431 @@
+\section{Continuous Microlocal Derivation}
+\label{app:continuous}
+
+This appendix records the continuous microlocal layer in more detail than the main text. The main body uses a dual spine: a short-time half-wave off-graph decay theorem and an abstract canonical-graph packet sparsity theorem. This appendix gives the lemma chain behind those statements.
+
+For the single flagship manuscript, the FoCM-style proof map is:
+\[
+\begin{gathered}
+\text{short-time parametrix}
+\Rightarrow
+\text{restricted non-stationary phase} \\
+\Rightarrow
+\text{packet almost-diagonalization}
+\Rightarrow
+\text{canonical-tube sparsity} \\
+\Rightarrow
+\text{transported-symbol reduction}
+\Rightarrow
+\text{network-realizable \MiNO-Core theorem}.
+\end{gathered}
+\]
+The finite landing layers of this map are machine-checked. The continuous arrows are classical manuscript mathematics restricted to Euclidean compact phase windows, Gaussian/Gabor packet frames, finite branch count, and a no-caustic short-time half-wave regime. This division gives continuous microlocal structure for the architecture and finite formalization for the computational landing layer.
+
+\subsection{Short-time half-wave parametrix}
+
+Let
+\[
+p(x,\xi)=c(x)|\xi|,
+\qquad
+0<c_{\min}\le c(x)\le c_{\max}<\infty,
+\]
+with $c\in C^\infty(\R^d)$. On a short time interval $|t|\le T$ chosen before caustic formation on the frequency band seen by the packet frame, the positive half-wave propagator $U_+(t)$ admits a standard oscillatory representation
+\[
+U_+(t)u(x)
+\sim
+(2\pi h)^{-d}
+\iint e^{\frac{i}{h}(\Phi_t(x,\xi)-y\cdot\xi)}
+a_t(x,\xi;h)\,u(y)\,dy\,d\xi,
+\]
+where:
+\begin{enumerate}
+\item $\Phi_t$ generates the canonical graph of the Hamiltonian flow $\kappa_t$ associated with $p$;
+\item $a_t$ is a classical amplitude with uniform symbol bounds on compact time intervals;
+\item the graph remains single-valued on the chosen time window.
+\end{enumerate}
+This is the exact place where we restrict to short time and Euclidean local coordinates. The theorem does not try to address global caustic geometry.
+
+\subsection{Packet testing and localized phase}
+
+Let $\varphi_\eta^h$ and $\varphi_\gamma^h$ be analytic Gaussian/Gabor-type packets centered at $z_\eta=(x_\eta,\xi_\eta)$ and $z_\gamma=(x_\gamma,\xi_\gamma)$. Inserting the packets into the parametrix gives
+\[
+M_{\gamma\eta}^h(t)
+:=
+\langle U_+(t)\varphi_\eta^h,\varphi_\gamma^h\rangle
+=
+(2\pi h)^{-d}\iiint
+e^{\frac{i}{h}\Psi_{t,\gamma,\eta}(x,y,\xi)}
+b_{t,\gamma,\eta}(x,y,\xi;h)\,dx\,dy\,d\xi,
+\]
+where the localized phase $\Psi_{t,\gamma,\eta}$ is the half-wave phase plus the packet phases, and $b_{t,\gamma,\eta}$ is a compactly localized amplitude coming from the packet windows and the FIO amplitude.
+
+The continuous packet problem is therefore reduced to an oscillatory-integral question: how does the integral behave when $z_\gamma$ is far from $\kappa_t(z_\eta)$?
+
+\subsection{Phase-gradient lower bound outside the canonical tube}
+
+The key microlocal lemma is a non-stationarity statement.
+
+\begin{lemma}[Phase-gradient lower bound]
+\label{lem:phase-gradient}
+Fix a tube radius parameter $\rho>0$. There exist constants $c_\rho,C_\rho>0$ such that if
+\[
+\mathrm{dist}\bigl(z_\gamma,\kappa_t(z_\eta)\bigr)\ge \rho h^{1/2},
+\]
+then on the support of the localized amplitude one has
+\[
+|\nabla_{x,y,\xi}\Psi_{t,\gamma,\eta}(x,y,\xi)|
+\ge
+c_\rho\,\mathrm{dist}\bigl(z_\gamma,\kappa_t(z_\eta)\bigr)
+- C_\rho h^{1/2}.
+\]
+In particular, after enlarging $\rho$ if necessary,
+\[
+|\nabla_{x,y,\xi}\Psi_{t,\gamma,\eta}(x,y,\xi)|
+\gtrsim
+\mathrm{dist}\bigl(z_\gamma,\kappa_t(z_\eta)\bigr)
+\]
+uniformly outside the canonical tube.
+\end{lemma}
+
+\begin{proof}[Proof idea]
+The packets localize the variables to neighborhoods of size $h^{1/2}$ around $(x_\gamma,\xi_\gamma)$ and $(x_\eta,\xi_\eta)$. On such neighborhoods, the stationary point equations for $\Psi_{t,\gamma,\eta}$ reduce to the canonical relation for the half-wave phase. If $z_\gamma$ is outside the tube around $\kappa_t(z_\eta)$, no stationary point survives on the localized support. Smooth dependence of the parametrix on $(x,\xi)$ and the no-caustic hypothesis then yield a quantitative lower bound.
+\end{proof}
+
+Lemma~\ref{lem:phase-gradient} is the PDE-specific step that replaces the old abstract assumption. Once it is available, the remainder of the packet argument is a classical non-stationary phase calculation.
+
+\subsection{Restricted non-stationary phase bridge}
+
+For the packet theorem used here, the full continuous calculus is not needed at the point where packet almost-diagonalization begins. The exact bridge can be isolated as follows.
+
+\begin{proposition}[Restricted packet non-stationary phase theorem]
+\label{prop:restricted-nsp-appendix}
+Consider a packet-localized oscillatory integral representation
+\[
+M_{\gamma\eta}^h
+=
+\int e^{\frac{i}{h}\Psi_{\gamma\eta}^h(z)} b_{\gamma\eta}^h(z)\,dz
+\]
+on a compact phase-space window.  After the packet rescaling
+$z=z_{\gamma\eta}^0+h^{1/2}\zeta$, write the integral as
+\[
+M_{\gamma\eta}^h
+=
+\int_{\R^m} e^{i\Theta_{\gamma\eta}^h(\zeta)}
+  a_{\gamma\eta}^h(\zeta)\,d\zeta,
+\]
+where $a_{\gamma\eta}^h$ is compactly supported in a fixed compact set
+independent of $h,\gamma,\eta$.  Set
+\[
+D_{\gamma\eta}
+:=
+1+h^{-1/2}\mathrm{dist}(z_\gamma,\kappa(z_\eta)).
+\]
+Fix $N\ge 1$.  Assume:
+\begin{enumerate}
+\item the phase comes from a single canonical graph on the chosen short-time window;
+\item the rescaled phase has no stationary point off the canonical tube and satisfies, for all multiindices $1\le |\alpha|\le N+1$,
+\[
+\bigl|\partial_\zeta^\alpha \Theta_{\gamma\eta}^h(\zeta)\bigr|
+\le C_\alpha D_{\gamma\eta},
+\qquad
+\bigl|\nabla_\zeta \Theta_{\gamma\eta}^h(\zeta)\bigr|
+\ge cD_{\gamma\eta};
+\]
+\item the rescaled localized amplitude satisfies the uniform $L^1$ seminorm bound
+\[
+\sum_{|\alpha|\le N}
+\|\partial_\zeta^\alpha a_{\gamma\eta}^h\|_{L^1}
+\le B_N .
+\]
+\end{enumerate}
+Then there is a constant $C_N'$ depending only on $N$, $c$, the phase derivative constants $C_\alpha$, the dimension, and the fixed support set such that
+\[
+|M_{\gamma\eta}^h|
+\le
+C_N' B_N
+\bigl(1+h^{-1/2}\mathrm{dist}(z_\gamma,\kappa(z_\eta))\bigr)^{-N}.
+\]
+\end{proposition}
+
+\begin{proof}
+Let
+\[
+v(\zeta)
+:=
+\frac{\nabla_\zeta\Theta_{\gamma\eta}^h(\zeta)}
+     {|\nabla_\zeta\Theta_{\gamma\eta}^h(\zeta)|^2},
+\qquad
+L:=\frac{1}{i}v(\zeta)\cdot\nabla_\zeta .
+\]
+Then $Le^{i\Theta_{\gamma\eta}^h}=e^{i\Theta_{\gamma\eta}^h}$.  Since the amplitude is compactly supported in a fixed compact set, repeated integration by parts gives
+\[
+M_{\gamma\eta}^h
+=
+\int e^{i\Theta_{\gamma\eta}^h(\zeta)}
+(L^\ast)^N a_{\gamma\eta}^h(\zeta)\,d\zeta .
+\]
+
+It remains to bound $(L^\ast)^N a_{\gamma\eta}^h$ in $L^1$.  The assumptions imply a uniform coefficient estimate for the vector field $v$: for every multiindex $|\alpha|\le N$,
+\[
+|\partial_\zeta^\alpha v(\zeta)|
+\le
+C_{\alpha,c}\,D_{\gamma\eta}^{-1}.
+\]
+Indeed, $v$ is a rational expression in the first derivatives of
+$\Theta_{\gamma\eta}^h$ with denominator
+$|\nabla\Theta_{\gamma\eta}^h|^2$; differentiating $v$ produces sums of terms whose numerators contain derivatives of $\Theta_{\gamma\eta}^h$ bounded by $C_\alpha D_{\gamma\eta}$ and whose denominators contain at least one net power of
+$|\nabla\Theta_{\gamma\eta}^h|$.  The lower bound
+$|\nabla\Theta_{\gamma\eta}^h|\ge cD_{\gamma\eta}$ therefore leaves one factor $D_{\gamma\eta}^{-1}$ in every coefficient derivative used below.
+
+The formal adjoint has the form
+\[
+L^\ast f
+=
+i^{-1}\bigl[-v\cdot\nabla f-(\div v)f\bigr],
+\]
+up to the harmless sign convention for complex conjugation.  Thus $L^\ast$ is a first-order differential operator whose coefficients and coefficient derivatives up to order $N-1$ are $O(D_{\gamma\eta}^{-1})$.  Expanding $(L^\ast)^N$ by induction yields
+\[
+(L^\ast)^N a_{\gamma\eta}^h
+=
+\sum_{|\alpha|\le N} c_{\alpha,N,\gamma,\eta}(\zeta)
+\partial_\zeta^\alpha a_{\gamma\eta}^h(\zeta),
+\qquad
+\|c_{\alpha,N,\gamma,\eta}\|_{L^\infty}
+\le
+C_N''D_{\gamma\eta}^{-N}.
+\]
+Consequently,
+\[
+\|(L^\ast)^N a_{\gamma\eta}^h\|_{L^1}
+\le
+C_N''D_{\gamma\eta}^{-N}
+\sum_{|\alpha|\le N}\|\partial_\zeta^\alpha a_{\gamma\eta}^h\|_{L^1}
+\le
+C_N''B_ND_{\gamma\eta}^{-N}.
+\]
+Taking absolute values in the integrated-by-parts representation proves the stated estimate.
+\end{proof}
+
+\subsection{Repeated integration by parts}
+
+Define the standard non-stationary phase operator
+\[
+L
+:=
+\frac{\nabla\Psi_{t,\gamma,\eta}\cdot\nabla_{x,y,\xi}}
+{i|\nabla\Psi_{t,\gamma,\eta}|^2}.
+\]
+By construction,
+\[
+L e^{\frac{i}{h}\Psi_{t,\gamma,\eta}}
+=
+h^{-1} e^{\frac{i}{h}\Psi_{t,\gamma,\eta}}.
+\]
+Integrating by parts $N$ times gives
+\[
+M_{\gamma\eta}^h(t)
+=
+h^N
+(2\pi h)^{-d}
+\iiint
+e^{\frac{i}{h}\Psi_{t,\gamma,\eta}}
+(L^\ast)^N b_{t,\gamma,\eta}\,dx\,dy\,d\xi.
+\]
+Lemma~\ref{lem:phase-gradient} shows that every application of $L^\ast$ contributes one inverse power of the tube distance, while analyticity and bounded overlap of the packet windows keep differentiated amplitudes summable. This yields
+\[
+|M_{\gamma\eta}^h(t)|
+\le
+C_{T,N}
+\Bigl(1+h^{-1/2}\,\mathrm{dist}\bigl(z_\gamma,\kappa_t(z_\eta)\bigr)\Bigr)^{-N},
+\]
+which is Theorem~\ref{thm:wave-offgraph}.
+
+\subsection{Shell decomposition for abstract FIO sparsity}
+
+Fix a source packet $\eta$ and write
+\[
+\mathcal S_\ell(\eta)
+=
+\Bigl\{
+\gamma\in\Gamma_h :
+2^\ell h^{1/2}
+\le
+\mathrm{dist}\bigl(z_\gamma,\kappa(z_\eta)\bigr)
+<
+2^{\ell+1} h^{1/2}
+\Bigr\},
+\qquad \ell\ge 0.
+\]
+Assume the canonical-graph packet matrix satisfies:
+\begin{enumerate}
+\item \emph{off-graph decay:}
+\[
+|F_{\gamma\eta}^h|
+\le
+C_N 2^{-N\ell}
+\qquad\text{for }\gamma\in\mathcal S_\ell(\eta);
+\]
+\item \emph{shell counting:}
+\[
+\#\mathcal S_\ell(\eta)\le C_{\mathrm{cnt}}2^{q\ell}.
+\]
+\end{enumerate}
+Then the shell mass satisfies
+\[
+\sum_{\gamma\in\mathcal S_\ell(\eta)} |F_{\gamma\eta}^h|
+\le
+C 2^{(q-N)\ell}.
+\]
+Summing shells $\ell\ge L$ gives
+\[
+\sum_{\ell\ge L}\sum_{\gamma\in\mathcal S_\ell(\eta)} |F_{\gamma\eta}^h|
+\le
+C' 2^{(q-N)L}.
+\]
+The number of packets retained through shell $L-1$ is $O(2^{qL})$, so if $K$ is the retained stencil size then $K\asymp 2^{qL}$ and therefore
+\[
+2^{(q-N)L}\asymp K^{1-N/q}.
+\]
+This is the entire proof of Theorem~\ref{thm:packet-sparsity}.
+
+\subsection{Restricted packet almost-diagonalization bridge}
+
+Once Proposition~\ref{prop:restricted-nsp-appendix} and the shell-counting hypothesis are available, the remaining step toward a theorem-grade packet law is local. Near the canonical graph, stationary phase identifies the retained entries of the packet matrix with sampled amplitudes; away from the graph, the dyadic shell tail is summable. The combination gives a restricted packet almost-diagonalization theorem:
+\begin{enumerate}
+\item the far-graph packet mass contributes a $K^{1-N/q}$ tail;
+\item the retained tube contributes a local sampled-symbol law plus frame, asymptotic, and covering-defect remainders;
+\item together they imply the bounded-stencil transported-symbol decomposition of Theorem~\ref{thm:continuous-reduction}.
+\end{enumerate}
+The key point is structural. The almost-diagonalization statement required by MiNO is not a vague appeal to the literature. It is the explicit sum of one restricted non-stationary-phase estimate and one local stationary-phase estimate.
+
+\subsection{Bounded-stencil transported-symbol reduction}
+
+The shell argument only tells us that far-graph entries are small. To get the actual \MiNO\ reference law one still needs a near-graph approximation on the retained tube. This is a stationary-phase calculation rather than a non-stationary one.
+
+Let $\Pi_{h,K}^\star(t,\gamma)$ denote the $K$ source packets whose propagated centers lie nearest to $z_\gamma$. For $\eta\in\Pi_{h,K}^\star(t,\gamma)$, stationary phase around the localized canonical point gives
+\[
+\langle U_+(t)\varphi_\eta^h,\varphi_\gamma^h\rangle
+=
+s_{h,\gamma\eta}^\star(t)
++ O(h^{1/2}(1+\delta_h)),
+\]
+where $s_{h,\gamma\eta}^\star(t)$ is the sampled FIO amplitude. Hence
+\[
+K_h(t)
+=
+{\transportref_h}^{(K)}(t)+R_h^{(K,M)}(t),
+\qquad
+({\transportref_h}^{(K)}(t)a)_\gamma
+=
+\sum_{\eta\in\Pi_{h,K}^\star(t,\gamma)} s_{h,\gamma\eta}^\star(t)a_\eta,
+\]
+with residual consisting of:
+\begin{enumerate}
+\item the discarded far-shell tail from Theorem~\ref{thm:packet-sparsity};
+\item the local stationary-phase remainder $O(h^M)$;
+\item the packet covering mismatch $O(\delta_h)$.
+\end{enumerate}
+This is exactly Theorem~\ref{thm:continuous-reduction}.
+
+\subsection{Identity-canonical pseudodifferential branch}
+
+The elliptic side of the restricted calculus uses the same packet argument with the canonical graph replaced by the identity relation.  Let $A_h=\Op_h(a)$ with $a\in S^m_{1,0}$ on the compact phase window.  Standard pseudodifferential packet almost-diagonalization gives, for every $N\ge 1$,
+\[
+|\langle A_h\varphi_\eta^h,\varphi_\gamma^h\rangle|
+\le
+C_N \langle \xi_\eta\rangle^m
+\Bigl(1+h^{-1/2}\mathrm{dist}(z_\gamma,z_\eta)\Bigr)^{-N}.
+\]
+Thus the relevant tube is not a transported tube around $\kappa(z_\eta)$ but the identity tube around $z_\eta$.  The same row/column shell-counting proof and Schur transfer then yield
+\[
+\|W_hA_hW_h^\ast-(W_hA_hW_h^\ast)^{(K_{\mathrm{id}})}\|_{\ell^2\to\ell^2}
+\le
+C_{\Psi}K_{\mathrm{id}}^{1-N/q},
+\]
+after absorbing the symbol-order envelope into the compact-window constant or into a weighted packet norm.  This is the mathematical reason the elliptic branch of \MiNO\ should be local-symbol dominated rather than transport dominated.
+
+\subsection{Dissipative pseudodifferential branch}
+
+For parabolic families, the microlocal law is not merely identity-canonical; it is also dissipative.  In the model case where the generator has principal symbol $q(x,\xi)$ with $\operatorname{Re}q(x,\xi)\ge c|\xi|^m$ on the high-frequency window, the short-time semigroup has principal packet action
+\[
+m_t(x,\xi)\approx \exp[-tq(x,\xi)].
+\]
+The executable branch therefore parameterizes a multiplier of the form
+\[
+m_\theta(x,\xi,\Delta t)
+=
+\exp[-\Delta t\,\operatorname{softplus}(q_\theta(x,\xi))],
+\]
+which enforces $0<m_\theta\le 1$ before any learned residual correction.  This is not a global Fourier fallback.  It is the dissipative-symbol regime of the same H\"ormander-style packet calculus.
+
+\subsection{Unified branch summation}
+
+The restricted calculus theorem in Section~\ref{sec:unified-calculus} is obtained by summing three packet laws:
+\begin{enumerate}
+\item FIO branches: off-canonical-tube decay plus shell counting;
+\item $\Psi$DO branch: off-identity-tube decay plus shell counting;
+\item smoothing branch: compact-window residual controlled by smoothing order.
+\end{enumerate}
+The finite counterpart is simple: once each branch has an $\ell^1$ budget, the total packet error is bounded by their sum. This summation step is machine-checked in \codepath{UnifiedCalculus.lean}; the continuous FIO and $\Psi$DO almost-diagonalization inputs are classical.
+
+\subsection{Lean-friendly lemma chain}
+
+The oscillatory integral proof is classical. The decomposition below gives each continuous layer a finite mirror.
+
+\paragraph{Layer 1: canonical shells and tubes.}
+\codepath{CanonicalTube.lean} defines the finite shell and tube objects and proves the basic inclusion lemmas used by any truncation argument.
+
+\paragraph{Layer 2: shell counting interface.}
+\codepath{ShellCount.lean} isolates shell-cardinality bounds from the continuous geometry that produced them. This is the place where Euclidean phase-space counting enters the finite theorem chain.
+
+\paragraph{Layer 3: geometric shell tails.}
+\codepath{PacketTail.lean} proves the finite geometric tail estimate from shell mass bounds.
+
+\paragraph{Layer 4: abstract sparsity bridge.}
+\codepath{AbstractSparsity.lean} packages shell counting plus entry decay into a canonical-tube truncation theorem.
+
+\paragraph{Layer 5: restricted bridge wrapper.}
+\codepath{RestrictedBridge.lean} packages the restricted off-graph tail with the finite transfer wrapper. This is the Lean-facing mirror of the restricted non-stationary-phase / almost-diagonalization bridge used in the manuscript.
+
+\paragraph{Layer 6: wave-to-transfer wrapper.}
+\codepath{WaveTransfer.lean} turns the truncation error into the same language as the explicit cross-resolution theorem.
+
+The wave/FIO analysis is classical. Once it is reduced to shell counts and off-graph decay, the theorem prover handles the finite layer.
+
+\subsection{Classical continuous inputs}
+
+The classical inputs are:
+\begin{enumerate}
+\item The short-time half-wave parametrix and the identification of the canonical graph are classical.
+\item The phase-gradient lower bound of Lemma~\ref{lem:phase-gradient} is classical.
+\item The restricted repeated-integration-by-parts argument is proved at manuscript level in Proposition~\ref{prop:restricted-nsp-appendix}.
+\item The near-graph stationary-phase identification of the retained amplitude samples is classical.
+\end{enumerate}
+These inputs feed the finite \MiNO\ theorem spine through explicit shell/tube estimates.
+
+\subsection{Scope of the continuous theorem}
+
+The theorem chain has the following scope.
+
+\paragraph{Short time only.}
+The half-wave theorem is stated only before caustics and branch crossing. Long-time propagation will generally require multibranch packet laws and more delicate geometry.
+
+\paragraph{Euclidean local charts.}
+The current proof uses $\R^d$ packet frames. Manifold generality would require additional chart and partition-of-unity bookkeeping.
+
+\paragraph{Canonical graph regime.}
+The abstract sparsity theorem assumes a single canonical graph. Multigraph or reflected propagators can still fit the framework, but only after splitting into branches.
+
+\paragraph{Bounded-$K$ rather than dense transport.}
+The whole point of the dual spine is to show that bounded stencils are natural. If the true packet matrix is structurally dense, then the transported-symbol thesis is simply the wrong primitive for that operator family.
+
+\subsection{FoCM-strength extensions}
+
+The extension path is:
+\begin{enumerate}
+\item enlarge the finite theorem core from $K=1$ to general bounded-$K$ stencils;
+\item formalize the shell-counting law for a concrete Euclidean packet frame;
+\item replace the restricted bridge used here by a genuinely continuous Lean proof of Proposition~\ref{prop:restricted-nsp-appendix};
+\item extend the half-wave theorem to multibranch or reflected settings.
+\end{enumerate}
+These steps target the remaining gap between the restricted manuscript calculus and a fully formal continuous development.

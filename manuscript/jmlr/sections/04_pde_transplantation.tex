@@ -1,0 +1,609 @@
+\section{PDE Specializations and Semi-Discrete Transplantation}
+\label{sec:pde}
+
+Section~\ref{sec:continuous} gives the continuous microlocal reason that a propagated packet law should exist. This section turns that continuous picture into PDE-specialized modeling statements and then lands back in an explicit packet-basis matrix class. The key idea is simple: once a \emph{packet-basis discretization} of a PDE solver is close to a sparse canonical packet matrix, Theorem~\ref{thm:schur-packet-matrix} gives the operator-level $\ell^2$ envelope while Theorem~\ref{thm:finite-transported-symbol} supplies the machine-checked finite landing algebra.
+
+\subsection{Packet-basis solver matrices}
+
+Fix a discretized PDE solver matrix $K_h$ acting on a grid of size $m$. Let $U_h\in\C^{m\times n}$ be a packet synthesis matrix and let $V_h\in\C^{n\times m}$ be the corresponding analysis matrix. The packet-basis realization of the solver is
+\[
+\mathcal K_h := V_h K_h U_h \in \C^{n\times n}.
+\]
+The continuous microlocal reduction theorem says that, for oscillatory PDEs with hyperbolic transport structure, $\mathcal K_h$ should be close to a sparse transported-symbol matrix: most of the energy of an input packet should move to a small set of output packets centered near the propagated phase-space location, with amplitude determined by a local symbol. The finite class introduced below is the implementation-side landing spot for that continuous statement.
+
+\begin{definition}[Transported-symbol matrix class]
+\label{def:ts-class}
+We say that a packet-basis matrix $\mathcal K_h$ belongs to the class $\mathfrak T(\eps_{\mathrm{tr}},\eps_{\mathrm{sym}},\eps_{\mathrm{res}})$ if there exist a reference transport map $\pi^\star$, reference symbol values $\symbolref_i$, an approximate transport map $\hat\pi$, approximate symbol values $\symbolhat_i$, and a residual operator $R_h$ such that
+\[
+\mathcal K_h a = \bigl(\symbolref_i a_{\pi^\star(i)}\bigr)_{i=1}^n
+ + \Bigl((\symbolhat_i-\symbolref_i)a_{\hat\pi(i)}\Bigr)_{i=1}^n
+ + R_h a,
+\]
+and the coefficient envelopes satisfy Assumption~\ref{ass:budgets} on the coefficient vectors under consideration.
+\end{definition}
+
+This definition is simply the theorem written in matrix language. It is precisely the right finite landing spot for PDE transplantation.
+
+\begin{proposition}[Semi-discrete transplantation principle]
+\label{prop:transplantation}
+Let $K_h$ be a discretized PDE solver, let $U_h,V_h$ define a packet basis, and let $\mathcal K_h=V_hK_hU_h$. If $\mathcal K_h$ belongs to the class $\mathfrak T(\eps_{\mathrm{tr}},\eps_{\mathrm{sym}},\eps_{\mathrm{res}})$ for a family of coefficient vectors with envelopes $B_a$ and $B_s$, then the induced packet-space approximation error of an approximate \MiNO\ layer is bounded exactly as in Theorem~\ref{thm:finite-transported-symbol}.
+\end{proposition}
+
+\begin{proof}
+By Definition~\ref{def:ts-class}, the action of $\mathcal K_h$ on the coefficient vectors under consideration admits the decomposition required by Theorem~\ref{thm:finite-transported-symbol}, with the same transport, symbol, and residual budgets. Therefore the theorem applies directly to the packet-space realization.
+\end{proof}
+
+Proposition~\ref{prop:transplantation} is intentionally taut and finite. Its value is that it separates what must be established for each PDE family from what is already proved universally. Each PDE-specific section below can therefore focus on why a packet-basis solver should lie near the transported-symbol class.
+
+\subsection{Variable-coefficient Helmholtz}
+
+Consider the variable-coefficient Helmholtz problem
+\[
+ -\nabla\cdot(c(x)\nabla u) - \omega^2 n(x)u = f.
+\]
+At high frequency, local oscillation and phase drift dominate. In packet language, a localized oscillatory packet does not remain stationary in physical space or frequency space. It moves according to the local Hamiltonian geometry induced by the principal symbol. The packet-basis matrix $\mathcal K_h$ is therefore expected to be dominated by a transport map in $(x,\xi)$ together with a local amplitude factor and a lower-order leakage term.
+
+For the purposes of this paper, the rigorous statement we need is the following finite modeling hypothesis.
+
+\begin{assumption}[Helmholtz packet hypothesis]
+\label{ass:helmholtz}
+For a chosen packet basis and a resolved frequency range, the packet-basis inverse Helmholtz solver $\mathcal K_h$ lies in $\mathfrak T(\eps_{\mathrm{tr}},\eps_{\mathrm{sym}},\eps_{\mathrm{res}})$ with budgets that improve as the packet frame is refined and the high-frequency solver is better localized.
+\end{assumption}
+
+Assumption~\ref{ass:helmholtz} is the discrete expression of the continuous microlocal intuition. Given this assumption, Proposition~\ref{prop:transplantation} immediately supplies the \MiNO\ approximation guarantee. In other words, the theoretical work left to the PDE specialist is to justify the packet-basis transported-symbol model for the discretization at hand, not to re-prove the finite error law.
+
+\paragraph{Local outgoing Helmholtz as a branch-factored resolvent instance.}
+High-$k$ Helmholtz is not a pure single-step wave propagator.  Even in a local window, an outgoing high-frequency Green operator combines transported packet geometry with finite landing error, directional frame resolution, and a near-characteristic resolvent symbol.  A finite sum of canonical branches is one admissible part of this structure, but branch multiplicity alone need not be the active bottleneck at a fixed finite budget.  Local outgoing Helmholtz therefore fits the general branch-factored oscillatory envelope of Theorem~\ref{thm:branch-factored-oscillatory-mino}, with additional radiation and landing budgets.  The statement below treats the local parametrix regime and keeps global resolvent theory outside the theorem claim.  Assume a no-trapping local outgoing parametrix admits a finite packet-window decomposition
+\[
+K_h^{\mathrm{out}}
+\approx
+\sum_{\ell=1}^L K_{h,\ell}^{\mathrm{FIO}}+S_h,
+\]
+where each $K_{h,\ell}^{\mathrm{FIO}}$ has a canonical graph $\kappa_\ell$, transported symbol $s_\ell$, and retained packet tube, and where $S_h$ is smoothing or outside the retained frequency window.  This is the local finite-branch regime tested in the high-$k$ Helmholtz campaign; caustics, Maslov phases, glancing rays, trapping, and global radiation-condition analysis are not claimed.
+
+\begin{corollary}[Local finite-branch Helmholtz packet bound]
+\label{cor:finite-branch-helmholtz}
+\label{prop:finite-branch-helmholtz}
+Suppose the local outgoing Helmholtz packet realization is within a finite $L$-branch FIO window as above.  Suppose branch $\ell$ has transport, symbol, and optional phase defects $E_{\mathrm{tr},\ell}$, $E_{\mathrm{sym},\ell}$, and $E_{\mathrm{phase},\ell}$, the router has mismatch $E_{\mathrm{route}}$, and retained branch tubes have cross-talk budget $E_{\mathrm{cross}}$.  Then Theorem~\ref{thm:branch-factored-oscillatory-mino} gives
+\[
+\begin{aligned}
+\|\mathcal M_{\theta,h}^{(L)}-K_h^{\mathrm{out}}\|_{\ell^2\to\ell^2}
+&\le
+\sum_{\ell=1}^{L}
+\bigl(E_{\mathrm{tr},\ell}+E_{\mathrm{sym},\ell}+E_{\mathrm{phase},\ell}\bigr)\\
+&\quad+
+\sum_{\ell=1}^{L}
+\bigl(E_{\mathrm{tsyn},\ell}+E_{\mathrm{car},\ell}+E_{\mathrm{land},\ell}\bigr)
++E_{\mathrm{route}}+E_{\mathrm{cross}}\\
+&\quad
++E_{\mathrm{res}}+E_{\mathrm{tail}}
++E_{\mathrm{frame}}+E_{\mathrm{asymp}}+C_{\mathrm{cov}}\delta_h .
+\end{aligned}
+\]
+At field level, the same projection constants as in Theorem~\ref{thm:wave-mino-core} are added.
+\end{corollary}
+
+\begin{proof}
+This is Theorem~\ref{thm:branch-factored-oscillatory-mino} with $A_h=0$ on the outgoing high-frequency window and with the smoothing or out-of-window part absorbed into $E_{\mathrm{res}}$, $E_{\mathrm{tail}}$, and the frame/asymptotic/covering defects.
+\end{proof}
+
+Corollary~\ref{cor:finite-branch-helmholtz} gives the precise hypothesis under which a branched carrier-bound \MiNO\ can reduce the high-$k$ gap: the target must have a small finite number of locally separable outgoing canonical branches, the learned router must select them with limited cross-talk, and the phase/landing error must be controlled tightly enough for the frequency range.  The executed high-$k$ probes indicate that, at the current local budget, branch multiplicity is not the identified active term; the stronger supported terms are the anisotropic frame, carrier-bound finite landing, and outgoing resolvent-symbol budgets introduced below.  The branch diagnostic in Appendix~\ref{app:diagnostic-figures} is interpreted as a finite-budget falsification of the branch-only hypothesis, not as evidence against the broader branch-factored microlocal structure.
+
+\paragraph{Outgoing resolvent symbol layer.}
+The previous corollary explains the multibranch canonical part, but high-$k$ Helmholtz also contains a symbol difficulty that is absent from the short-time wave theorem.  In semiclassical notation the local outgoing inverse is governed by a principal factor of the form
+\[
+(p(x,\xi)+i0)^{-1},
+\qquad
+p(x,\xi)=c(x)|\xi|^2-n(x),
+\]
+after microlocal cutoffs and lower-order corrections.  Thus an executable symbol branch that only exposes a smooth radial $S^m$ order can miss the near-characteristic shell and outgoing attenuation structure of the resolvent.  We isolate this as a separate finite budget rather than folding it into an anonymous residual.
+
+\begin{corollary}[Near-characteristic resolvent-symbol budget]
+\label{cor:helmholtz-resolvent-symbol-budget}
+Assume the local outgoing Helmholtz window of Corollary~\ref{cor:finite-branch-helmholtz}.  Suppose, in addition, that after branch localization the remaining identity-canonical factor has a cut-off resolvent symbol
+\[
+a_{\mathrm{rad},h}(z)
+=
+\chi_{\mathrm{out}}(z)\chi_{\mathrm{char}}(z)
+\,(p(z)+i0)^{-1}b_h(z),
+\]
+with $b_h$ satisfying the finite symbol-seminorm envelope required by Corollary~\ref{cor:identity-symbol-order}.  Let the learned radiation-aware multiplier have shell-distance error $E_{\mathrm{shell}}$, outgoing-envelope error $E_{\mathrm{out}}$, finite complex-pair realization error $E_{\mathbb C}$ for the signed resolvent multiplier, and bounded-cap error $E_{\mathrm{cap}}$ on the retained packet window.  Then the local finite-branch Helmholtz estimate holds with the additional term
+\[
+E_{\mathrm{rad}}
+:=
+E_{\mathrm{shell}}+E_{\mathrm{out}}+E_{\mathbb C}+E_{\mathrm{cap}},
+\]
+so that the right-hand side of Corollary~\ref{cor:finite-branch-helmholtz} is enlarged by $C_{\mathrm{rad}}E_{\mathrm{rad}}$.
+\end{corollary}
+
+\begin{proof}
+Apply the packet almost-diagonalization step used in Corollary~\ref{cor:identity-symbol-order} to the cut-off identity-canonical resolvent factor.  The cutoff removes the global singularities and keeps the statement local in the retained packet window.  Replacing the ideal near-characteristic multiplier by the executable layer changes the retained packet matrix by the displayed defects: shell localization, outgoing-envelope approximation, the finite complex-pair realization error $E_{\mathbb C}$ for multiplication by the signed real/imaginary resolvent factor, and the bounded cap used to keep the finite neural multiplier stable.  The packet-matrix envelope is additive in retained symbol perturbations, so this produces the extra $C_{\mathrm{rad}}E_{\mathrm{rad}}$ term.
+\end{proof}
+
+The artifact implements this layer as \texttt{helmholtz\_resolvent}: a multiplier-only symbol parameterization with radial frequency, unit direction, an auto-calibrated characteristic shell, signed real/imaginary resolvent weights, and an outgoing gate.  The code lifts packet features to a bias-free latent complex pair, applies the exact real formula for multiplication by $a+ib$, and projects back to the packet feature space.  When a dataset provides genuine real/imaginary target channels, the runner can also add explicit complex-pair relative and phase/coherence losses; for scalar real-valued Helmholtz rows these losses are inactive, so no artificial quadrature channel is introduced.  The layer is an executable hook for the near-characteristic symbol term isolated above.  The direct \texttt{spectral\_order} versus \texttt{helmholtz\_resolvent} plausibility row in Table~\ref{tab:helmholtz-highk-careful-midscale} shows that, at the current finite budget, the resolvent hook changes phase-sensitive behavior more clearly than relative-$\ell^2$ error.  It is therefore reported as a budget-local radiation/symbol diagnostic, not as an independent solved high-$k$ mechanism.  If high-$k$ error remains large after enabling the hook, the remaining budgets are $E_{\mathrm{frame}}$, $E_{\mathrm{route}}$, $E_{\mathrm{phase}}$, or the learned finite-budget $E_{\mathrm{rad}}$.
+
+\paragraph{Frequency-scaling benchmark contract.}
+A high-$k$ Helmholtz result is only a flagship result if it controls degradation as $k$ increases, not merely one fixed cache row.  The packet budget above gives the required scaling language.  Let
+\[
+\mathcal E_{\mathrm{Hk}}(k)
+=
+E_{\mathrm{frame}}(k)+E_{\mathrm{route}}(k)+E_{\mathrm{cross}}(k)
++E_{\mathrm{phase}}(k)+E_{\mathrm{land}}(k)+E_{\mathrm{rad}}(k)
++E_{\mathrm{res}}(k)+E_{\mathrm{tail}}(k).
+\]
+Here $E_{\mathrm{frame}}$ includes the directional or anisotropic packet covering defect, $E_{\mathrm{phase}}$ includes phase/coherence error, $E_{\mathrm{rad}}$ is the near-characteristic resolvent-symbol defect from Corollary~\ref{cor:helmholtz-resolvent-symbol-budget}, and $E_{\mathrm{res}}$ includes the measured PDE and boundary/radiation residuals of the learned field.  In a resolved no-trapping local window,
+\[
+\|\mathcal M_{\theta,h}^{(L)}(k)-K^{\mathrm{out}}_{h,k}\|
+\le C(k)\,\mathcal E_{\mathrm{Hk}}(k),
+\]
+with $C(k)$ inherited from the local resolvent stability constant on that window.  The manuscript therefore uses ``high-frequency robustness'' only as a scaling claim: it requires reporting $kL$, points per wavelength, reference-solver residual, phase error, radiation/PDE residual, and error degradation across increasing $k$.  A pollution-style learned-representation claim would additionally require showing that the learned degrees of freedom or packet budget grow no faster than the natural high-frequency resolution scale for the tested accuracy.
+
+\subsection{High-frequency wave propagation}
+
+For the scalar wave equation
+\[
+\partial_t^2 u - c(x)^2\Delta u = 0,
+\]
+the one-step or short-time propagator is even more naturally interpreted in packet coordinates. Packets move along bicharacteristics and their amplitudes are corrected by lower-order transport factors. This is the cleanest setting for the microlocal viewpoint, because propagation itself is the fundamental phenomenon. In the notation of Section~\ref{sec:continuous}, the propagator is the direct model case for Theorem~\ref{thm:continuous-reduction}.
+
+More precisely, the continuous spine splits the wave story into two steps. Theorem~\ref{thm:wave-offgraph} supplies the PDE theorem: outside the canonical tube traced by the half-wave flow, packet matrix entries decay rapidly by non-stationary phase. Theorem~\ref{thm:packet-sparsity} then converts that decay into an explicit bounded-stencil truncation rate. Theorem~\ref{thm:continuous-reduction} is the wave/FIO consequence that lands directly in the theorem-grade \MiNO\ class.
+
+\paragraph{Transported synthesis and carrier binding.}
+The theorem-grade model assumes that moved packet metadata is used not only to choose a message-passing stencil, but also to synthesize packets at their transported centers.  Otherwise a finite implementation can satisfy the internal graph description while folding all coefficients back onto the original analysis grid, making the transport branch geometrically inert at the field level.  The carrier-bound \MiNO\ implementation therefore uses two transported field paths: a transported synthesis of the learned packet coefficients and a transported high-frequency input carrier built from the original analysis coefficients.  The controls in Section~\ref{sec:benchmark-program} show that these paths are behaviorally separable, so the executable theorem tracks them separately.  We write $W_{h,\widehat\kappa}^{\ast}$ for ideal transported synthesis using the learned packet centers, $\widetilde W_{h,\widehat\kappa,\mathrm{coef}}^{\ast}$ for the executable transported synthesis of learned coefficients, and $\widetilde W_{h,\widehat\kappa,\mathrm{car}}^{\ast}$ for the full executable carrier-bound synthesis including the high-frequency input carrier.  Define
+\[
+E_{\mathrm{tsyn}}(u,t)
+:=
+\bigl\|
+W_{h,\widehat\kappa}^{\ast}\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+-\widetilde W_{h,\widehat\kappa,\mathrm{coef}}^{\ast}\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+\bigr\|_{L^2},
+\]
+and
+\[
+E_{\mathrm{car}}(u,t)
+:=
+\bigl\|
+\widetilde W_{h,\widehat\kappa,\mathrm{coef}}^{\ast}\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+-\widetilde W_{h,\widehat\kappa,\mathrm{car}}^{\ast}\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+\bigr\|_{L^2}.
+\]
+The first term is the transported-coefficient synthesis defect.  The second term records the high-frequency carrier channel; it is not part of the abstract FIO packet matrix, but is the executable field-level mechanism that makes transported metadata visible after synthesis.  In the code path used for the controlled mechanism rows, both transported paths are implemented as packet-energy-weighted field warps from initial packet centers to final metadata, while the skip and refinement paths are low-pass restricted.
+
+The code also exposes a learned transport-conditioned landing decoder $D_\theta$ that may be inserted after the two transported paths.  The correct theoretical object is not an unrestricted post-hoc solver, but an admissible finite landing map.  We call $D_\theta$ admissible when it is local with receptive radius $r_{\mathrm{land}}$, bias-free, takes only the transported coefficient synthesis, transported input carrier, and low-pass lifted field as inputs, and is gated by transported-path energy so that
+\[
+D_\theta(0,0,\ell)=0
+\qquad\text{for every low-pass field }\ell .
+\]
+Let $\widetilde W_{h,\widehat\kappa,\theta}^{\ast}$ denote the resulting learned executable landing map and define
+\[
+E_{\mathrm{land},\theta}(u,t)
+:=
+\bigl\|
+W_{h,\widehat\kappa}^{\ast}\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+-
+\widetilde W_{h,\widehat\kappa,\theta}^{\ast}\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+\bigr\|_{L^2}.
+\]
+Thus the nonlearned carrier-bound realization is controlled by $E_{\mathrm{tsyn}}+E_{\mathrm{car}}$, while the learned-landing realization is controlled by $E_{\mathrm{land},\theta}$.  If the ideal finite landing correction belongs to a compact $C^r$ local landing class on the retained packet window and the decoder has parameter budget $P_{\mathrm{land}}$, standard local-network approximation gives the bookkeeping rate
+\[
+E_{\mathrm{land},\theta}(u,t)
+\le
+C_{\mathrm{land}}P_{\mathrm{land}}^{-r/m_{\mathrm{land}}}\mathcal E_{\mathrm{act}}(u)
++E_{\mathrm{gate}}(u,t),
+\]
+where $\mathcal E_{\mathrm{act}}(u)$ is the active transported packet energy and $E_{\mathrm{gate}}$ records any loss induced by the transported-energy gate.  This is a finite executable landing budget, not a new microlocal propagation theorem.  The ideal theorem corresponds to vanishing executable landing defect.
+
+\begin{theorem}[Microlocal Propagation Theorem for \MiNO-Core]
+\label{thm:wave-mino-core}
+\label{thm:microlocal-propagation}
+Fix a no-caustic time window $|t|\le T$ for the half-wave propagator $U_+(t)$ generated by $p(x,\xi)=c(x)|\xi|$, and let
+\[
+K_h(t)=W_hU_+(t)W_h^\ast
+\]
+be its packet realization on a packet frame of scale $h$ and normalized covering defect $\delta_h$ (raw covering radius $h^{1/2}\delta_h$). Assume the compact packet window $\Omega_T$ swept out by the flow satisfies the smoothness hypotheses of Theorem~\ref{thm:network-realizable-wave-mino}: the canonical map $\kappa_t$ is $C^r$ with norm at most $A_r$, and the retained symbol is a local packet kernel
+\[
+s_t(z,\nu;h),\qquad
+\nu=h^{-1/2}(z_\gamma-\kappa_t(z_\eta)),
+\]
+with $C^r$ norm at most $A_r$ on a compact source--tube coordinate window of dimension $m_\Omega+q_{\mathrm{loc}}$.  Let $\mathcal M_{h,K,P}^{\mathrm{core}}(t)$ be a theorem-grade \MiNO-Core block with stencil budget $K$, metadata-branch parameter budget $P_{\mathrm{tr}}$, symbol-branch parameter budget $P_{\mathrm{sym}}$, and explicit residual budget $\eps_{\mathrm{res}}$. Then for every $N>q+1$ and every retained asymptotic order $M\ge 1$,
+\begin{align}
+\label{eq:wave-main-rate}
+\|\mathcal M_{h,K,P}^{\mathrm{core}}(t)-K_h(t)\|_{\ell^2\to\ell^2}
+&\le
+C_{\mathrm{tr}}K\bigl(h^{-1/2}P_{\mathrm{tr}}^{-r/m_\Omega}+\delta_h\bigr)
+ \notag\\
+&\quad+
+C_{\mathrm{sym}}K P_{\mathrm{sym}}^{-r/(m_\Omega+q_{\mathrm{loc}})}
++
+C_{\mathrm{res}}\eps_{\mathrm{res}} \notag\\
+&\quad +
+C_{\mathrm{tail}}K^{1-N/q}
++
+C_{\mathrm{frame}}E_{\mathrm{frame}}(h)
++C_{\mathrm{asymp}}E_{\mathrm{asymp}}(h,M)
++C_{\mathrm{cov}}\delta_h,
+\end{align}
+where $m_\Omega=\dim(\Omega_T)$ and the constants depend only on the wave-family window, packet frame, shell-counting geometry, compact-window $C^r$ bounds, local tube dimension, and branch approximation class.  The normalized covering defect $\delta_h$ is not automatically small: it tends to zero only for oversampled packet clouds, while for critically sampled executable frames it is a fixed packetization defect. Denote the right-hand side of~\eqref{eq:wave-main-rate} by $E_{h,K,P}^{(2)}$; when no confusion is possible we write $E_{h,K,P}$ for this $\ell^2$ packet-matrix envelope. Equivalently, for every packet vector $a$,
+\[
+\|\mathcal M_{h,K,P}^{\mathrm{core}}(t)a-K_h(t)a\|_{\ell^2}
+\le
+E_{h,K,P}^{(2)}\|a\|_{\ell^2}.
+\]
+If the synthesis map $W_h^\ast$ has upper frame bound $B_W$, let $\mathcal P_h:=W_h^\ast W_h$ and define the input and output projection defects
+\[
+E_{\mathrm{proj}}^{\mathrm{in}}(u,t)
+:=
+\|U_+(t)(I-\mathcal P_h)u\|_{L^2},
+\qquad
+E_{\mathrm{proj}}^{\mathrm{out}}(u,t)
+:=
+\|(I-\mathcal P_h)U_+(t)\mathcal P_hu\|_{L^2}.
+\]
+Then the same theorem gives the direct field-level operator estimate for the nonlearned carrier-bound realization
+\[
+\begin{aligned}
+&\|\widetilde W_{h,\widehat\kappa,\mathrm{car}}^{\ast}
+\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+-U_+(t)u\|_{L^2} \\
+&\qquad \le
+B_W E_{h,K,P}^{(2)}\|W_hu\|_{\ell^2}
++E_{\mathrm{proj}}^{\mathrm{in}}(u,t)
++E_{\mathrm{proj}}^{\mathrm{out}}(u,t) \\
+&\qquad\quad
++E_{\mathrm{tsyn}}(u,t)
++E_{\mathrm{car}}(u,t).
+\end{aligned}
+\]
+For the learned admissible landing realization, the last two executable terms are replaced by $E_{\mathrm{land},\theta}(u,t)$:
+\[
+\begin{aligned}
+&\|\widetilde W_{h,\widehat\kappa,\theta}^{\ast}
+\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+-U_+(t)u\|_{L^2} \\
+&\qquad \le
+B_W E_{h,K,P}^{(2)}\|W_hu\|_{\ell^2}
++E_{\mathrm{proj}}^{\mathrm{in}}(u,t)
++E_{\mathrm{proj}}^{\mathrm{out}}(u,t)
++E_{\mathrm{land},\theta}(u,t).
+\end{aligned}
+\]
+Thus the canonical reading of the theorem is a function-space approximation statement in the packet energy norm; the older coefficientwise $\ell^1$ estimate is the finite landing layer checked by the proof assistant.
+\end{theorem}
+
+\begin{proof}
+This is Theorem~\ref{thm:network-realizable-wave-mino} specialized to the PDE transplantation notation of the present section. Theorems~\ref{thm:wave-offgraph}, \ref{thm:packet-sparsity}, and \ref{thm:continuous-reduction} reduce the half-wave propagator to a bounded-stencil packet law with tail, frame, asymptotic, and covering defects. The compact-window neural approximation input approximates $\kappa_t$ and the local packet kernel $s_t(z,\nu;h)$ by the metadata and symbol branches at rates $P_{\mathrm{tr}}^{-r/m_\Omega}$ and $P_{\mathrm{sym}}^{-r/(m_\Omega+q_{\mathrm{loc}})}$, with the geometric transport error measured in packet-radius units and hence multiplied by $h^{-1/2}$. The Schur packet-matrix transfer in Theorem~\ref{thm:schur-packet-matrix} converts these entrywise kernel and symbol errors into the $\ell^2\to\ell^2$ learned-budget part of~\eqref{eq:wave-main-rate}. Finally,
+\[
+W_h^\ast K_h(t)W_hu
+=
+\mathcal P_hU_+(t)\mathcal P_hu,
+\]
+so the difference between the packet-space realization and the true field propagator is exactly controlled by the two projection defects displayed in the theorem.
+Replacing the ideal transported synthesis $W_{h,\widehat\kappa}^{\ast}$ by the executable coefficient synthesis adds $E_{\mathrm{tsyn}}(u,t)$, and replacing the coefficient-only synthesis by the carrier-bound executable synthesis adds $E_{\mathrm{car}}(u,t)$, both by the triangle inequality.  If the learned admissible landing map is used, the same triangle inequality is applied once, directly between $W_{h,\widehat\kappa}^{\ast}$ and $\widetilde W_{h,\widehat\kappa,\theta}^{\ast}$, producing $E_{\mathrm{land},\theta}$.
+\end{proof}
+
+Theorem~\ref{thm:wave-mino-core} is the manuscript's Microlocal Propagation Theorem. The name is reserved for this theorem, not for the finite triangle-inequality lemma in Section~\ref{sec:theory}, because this statement contains the actual propagation content: the PDE propagator has a canonical graph, the packet matrix decays away from the graph, bounded canonical stencils capture the significant entries, and \MiNO-Core approximates the retained transported-symbol law with explicit network rates. It separates the budgets that the rest of the manuscript tracks empirically: network-realized transport, network-realized symbol, residual, packet-tail truncation, discretization/covering defect, transported-synthesis defect, carrier-channel discrepancy, and optional learned finite-landing discrepancy. The first two scale with branch capacity, not merely with assumed learned budgets; the tail and discretization terms are the price of replacing the exact packet matrix by a bounded canonical stencil on a finite frame; the final executable terms record field-synthesis effects that are not visible in a purely packet-matrix statement.
+
+This is the main mathematical spine of the paper.  Each architectural branch corresponds to one term in an explicit approximation law, and the restricted semiclassical packet-calculus chain has a computational landing layer:
+\[
+\begin{aligned}
+\text{half-wave parametrix}
+&\Rightarrow
+\text{off-canonical-tube decay}
+\Rightarrow
+\text{packet sparsity}\\
+&\Rightarrow
+\text{transported-symbol reduction}
+\Rightarrow
+\text{network-realizable}\\
+&\Rightarrow
+\text{\MiNO-Core approximation}.
+\end{aligned}
+\]
+The theorem organizes the classical short-time FIO packet calculus into an approximation statement whose final finite bridge is machine-checkable and whose hypotheses map directly onto executable architecture knobs.
+
+\subsection{Transport certification and comparison boundary}
+\label{sec:transport-certification}
+
+The main theorem is an upper-bound theorem for a packet architecture.  It does not by itself imply that \MiNO\ must dominate every multiscale baseline.  To make the logical status precise, we record two finite consequences that are used in the empirical interpretation.  The first makes the theorem non-vacuous when a controlled benchmark supplies a flow target; the second states the limited separation that the current theory actually supports.
+
+\begin{proposition}[Flow certificate to packet transport budget]
+\label{prop:flow-certificate-budget}
+Let $\Gamma_h$ be the retained packet grid in the compact window and let $\hat\kappa_h$ be the learned metadata map.  Suppose that, on the active packet set $A_h\subset\Gamma_h$,
+\[
+\epsilon_{\kappa,h}
+:=
+\sup_{\eta\in A_h} d_h\bigl(\hat\kappa_h(z_\eta),\kappa_t(z_\eta)\bigr)
+\]
+is finite in the packet-radius metric $d_h=h^{-1/2}d$.  Assume that the retained packet overlap kernel is Lipschitz on the canonical tube:
+\[
+\sum_{\gamma\in \Pi_K(\eta)}
+\bigl|
+G_h(z_\gamma,\hat z)-G_h(z_\gamma,z')
+\bigr|
+\le
+L_{\mathrm{ker}}d_h(\hat z,z')
+\]
+for all $\hat z,z'$ in the enlarged tube, uniformly in $\eta$.  Then the transport-kernel mismatch entering the finite transported-symbol bridge satisfies
+\[
+\epsilon_{\mathrm{tr},h}
+\le
+L_{\mathrm{ker}}\bigl(\epsilon_{\kappa,h}+C\delta_h\bigr),
+\]
+and the transport contribution in Theorem~\ref{thm:wave-mino-core} may be bounded by
+\[
+C_{\mathrm{tr}}K\,L_{\mathrm{ker}}\bigl(\epsilon_{\kappa,h}+C\delta_h\bigr).
+\]
+\end{proposition}
+
+\begin{proof}
+For each active source packet, compare the ideal retained kernel centered at $\kappa_t(z_\eta)$ with the learned retained kernel centered at $\hat\kappa_h(z_\eta)$.  The covering defect moves the nearest executable packet center by at most $C\delta_h$ in packet-radius units.  The Lipschitz kernel hypothesis gives the displayed row/column kernel mismatch.  The finite bounded-stencil perturbation theorem then multiplies this transport mismatch by the retained degree $K$ and the same transport constant as in Theorem~\ref{thm:wave-mino-core}.
+\end{proof}
+
+Proposition~\ref{prop:flow-certificate-budget} is the formal reading of the artifact's \texttt{test\_canonical\_flow\_error} metric.  A small measured canonical-flow proxy does not prove a full classical wavefront theorem, but it does certify the particular geometric hypothesis that the finite transport budget needs on controlled rows.
+
+\begin{proposition}[Conditional packet-transport advantage]
+\label{prop:conditional-transport-advantage}
+Fix a normalized input packet $\phi_\eta^h$ and suppose the target propagator satisfies
+\[
+U_+(t)\phi_\eta^h
+=
+s_\eta\phi_{\kappa_t(z_\eta)}^h+r_\eta,
+\qquad
+|s_\eta|\ge s_0,\qquad
+\|r_\eta\|_{L^2}\le \rho .
+\]
+Let $\mathcal A_R$ be any model class whose output on $\phi_\eta^h$ lies in the closed span of packets with centers inside the identity tube
+\[
+\{z_\gamma:\ d_h(z_\gamma,z_\eta)\le R\}.
+\]
+Assume the transported packet is almost orthogonal to that identity tube:
+\[
+\sup_{\substack{v\in \mathcal A_R(\phi_\eta^h)\\ \|v\|_{L^2}=1}}
+\bigl|\langle \phi_{\kappa_t(z_\eta)}^h,v\rangle\bigr|
+\le \mu
+\qquad
+\text{with } 0\le\mu<1.
+\]
+Then every identity-local model $A\in\mathcal A_R$ obeys
+\[
+\|A\phi_\eta^h-U_+(t)\phi_\eta^h\|_{L^2}
+\ge
+s_0\sqrt{1-\mu^2}-\rho .
+\]
+In contrast, a transported-synthesis packet model with
+\[
+d_h(\hat\kappa_h(z_\eta),\kappa_t(z_\eta))\le\epsilon_{\kappa,h},
+\qquad
+|\hat s_\eta-s_\eta|\le \epsilon_s,
+\]
+and Lipschitz packet synthesis on the tube has error
+\[
+\|\hat s_\eta \phi_{\hat\kappa_h(z_\eta)}^h-U_+(t)\phi_\eta^h\|_{L^2}
+\le
+C_{\mathrm{pkt}}s_0\epsilon_{\kappa,h}
++
+\epsilon_s
++
+\rho .
+\]
+\end{proposition}
+
+\begin{proof}
+Let $V_R$ be the identity-tube output subspace.  The assumption says that the distance from $\phi_{\kappa_t(z_\eta)}^h$ to $V_R$ is at least $\sqrt{1-\mu^2}$.  Therefore every $v\in V_R$ has
+\[
+\|v-s_\eta\phi_{\kappa_t(z_\eta)}^h\|_{L^2}
+\ge
+|s_\eta|\sqrt{1-\mu^2}.
+\]
+Adding the residual $r_\eta$ by the reverse triangle inequality gives the lower bound.  The transported upper bound follows by adding and subtracting $s_\eta\phi_{\hat\kappa_h(z_\eta)}^h$ and using Lipschitz dependence of the packet atom on its center in packet-radius units.
+\end{proof}
+
+The next proposition records the representation separation supplied by the packet geometry.  It compares carrier-bound packet transport with primitives whose output is restricted to an identity tube plus a fixed finite Fourier-limited residual span.  The result is a finite-subspace statement about representation geometry.
+
+\begin{proposition}[Primitive-level representation separation for packet transport]
+\label{prop:primitive-level-separation}
+Let the hypotheses and notation of Proposition~\ref{prop:conditional-transport-advantage} hold.  Let $V_R$ be the identity-tube packet subspace.  Let $\mathcal G_Q$ be a fixed $Q$-dimensional Fourier-limited residual subspace.  This subspace represents the part of a global spectral primitive that lacks an explicit packet-dependent landing map.  Define
+\[
+\mathcal B_{R,Q}(\phi_\eta^h)
+\subset
+V_R+\mathcal G_Q .
+\]
+Write $V_{R,Q}:=V_R+\mathcal G_Q$.  Assume the transported packet is separated from this combined primitive span:
+\begin{align*}
+\sup_{\substack{v\in V_{R,Q}\\ \|v\|_{L^2}=1}}
+\bigl|\langle \phi_{\kappa_t(z_\eta)}^h,v\rangle\bigr|
+\le \mu_{R,Q},
+\qquad
+0\le \mu_{R,Q}<1 .
+\end{align*}
+Then every $B\in\mathcal B_{R,Q}$ satisfies
+\[
+\|B\phi_\eta^h-U_+(t)\phi_\eta^h\|_{L^2}
+\ge
+s_0\sqrt{1-\mu_{R,Q}^2}-\rho .
+\]
+Meanwhile the transported-synthesis packet model has the same upper bound as in Proposition~\ref{prop:conditional-transport-advantage},
+\[
+\|\hat s_\eta \phi_{\hat\kappa_h(z_\eta)}^h-U_+(t)\phi_\eta^h\|_{L^2}
+\le
+C_{\mathrm{pkt}}s_0\epsilon_{\kappa,h}
++
+\epsilon_s
++
+\rho .
+\]
+\end{proposition}
+
+\begin{proof}
+The proof is the same projection argument as Proposition~\ref{prop:conditional-transport-advantage}, with $V_R$ replaced by the closed combined span $V_R+\mathcal G_Q$.  The separation assumption lower bounds the distance from the transported packet to that combined span by $\sqrt{1-\mu_{R,Q}^2}$.  The residual $r_\eta$ is then handled by the reverse triangle inequality, and the transported-packet upper bound is unchanged.
+\end{proof}
+
+Proposition~\ref{prop:primitive-level-separation} is a finite-subspace separation.  When the correct high-frequency packet exits the identity tube and remains outside the fixed Fourier-limited residual span, an explicit packet-transport landing map avoids an error floor.  Full UNO, FNO, WNO, or other nonlinear architectures may enlarge the effective span or learn an implicit transported-symbol law through pointwise mixing, multiscale decoding, or refinement.  The proposition therefore supports a precise mechanism-efficiency statement: \MiNO\ exposes the sparse canonical packet-matrix law directly, while non-transport primitives must represent the same law indirectly.
+Appendix~\ref{app:flagship-theorems} strengthens this single-packet statement into a many-packet rank-growth theorem.  There, a fixed-rank or fixed-bandwidth output primitive that must land $N_h$ almost-orthogonal transported packets incurs a rank lower bound proportional to $N_h$, while a sparse canonical packet matrix keeps bounded local stencil degree.  This is the paper's strongest representation-complexity claim; it is still a restricted primitive separation rather than a universal lower bound against fully nonlinear neural operators.
+
+\begin{corollary}[Hamiltonian-branch specialization]
+\label{cor:hamiltonian-branch-rate}
+Assume the hypotheses of Theorem~\ref{thm:wave-mino-core}, and suppose the half-wave canonical flow is generated on $\Omega_T$ by a Hamiltonian $H\in C^{r+2}(\Omega_T)$ as in Proposition~\ref{prop:hamiltonian-metadata-consistency}.  If the metadata branch is the Hamiltonian-vector-field branch with scalar Hamiltonian budget $P_H$ and Euler step $\Delta$, then the transport contribution in~\eqref{eq:wave-main-rate} may be replaced by
+\[
+C_{\mathrm{ham}}K
+\Bigl(h^{-1/2}(P_H^{-(r-2)/m_\Omega}+\Delta)+\delta_h\Bigr),
+\]
+with the same packet-tail, symbol, residual, and projection terms as in Theorem~\ref{thm:wave-mino-core}.  The branch also has canonical-defect proxy
+\[
+\sup_z
+\bigl\|D\Psi_{P_H,\Delta}(z)^\top\Omega_0D\Psi_{P_H,\Delta}(z)-\Omega_0\bigr\|
+\le
+C_T\Delta^2\|H_{P_H}\|_{C^2}^2 .
+\]
+If the branch is the separable \texttt{hamiltonian\_verlet} branch, the same statement holds with the discretization term $\Delta$ replaced by $\Delta^2$, and the exact-map canonical-defect proxy is zero.
+\end{corollary}
+
+\begin{proof}
+Proposition~\ref{prop:hamiltonian-metadata-consistency} gives the geometric canonical-map error
+\[
+\epsilon_\kappa
+\le
+C_T(P_H^{-(r-2)/m_\Omega}+\Delta).
+\]
+The packet-kernel bridge in Theorem~\ref{thm:network-realizable-wave-mino} converts geometric error into packet-radius units, producing the factor $h^{-1/2}$, and then adds the covering term $\delta_h$.  The remaining terms are unchanged.  The canonical-defect estimate is exactly the second conclusion of Proposition~\ref{prop:hamiltonian-metadata-consistency}. For \texttt{hamiltonian\_verlet}, the separable St\"ormer--Verlet part of Proposition~\ref{prop:hamiltonian-metadata-consistency} gives the improved $\Delta^2$ consistency term and exact symplecticity of the metadata map.
+\end{proof}
+
+Corollary~\ref{cor:hamiltonian-branch-rate} is the theorem-level reason for exposing Hamiltonian transport in the branch-identifiability campaign. The old \texttt{hamiltonian\_euler} path is a cheap scalar-generator diagnostic. The \texttt{hamiltonian\_verlet} path is a structured separable/splitting-biased parameterization: it enforces symplecticity for separable Hamiltonian metadata updates and makes the canonical-defect metric meaningful.  The main Microlocal Propagation Theorem requires a learned near-canonical map with the displayed compact-window error budget; it does not require Verlet, nor does it assert that separable Verlet is a general representation theorem for the half-wave Hamiltonian.  Since $p(x,\xi)=c(x)|\xi|$ is generally nonseparable, the executable Verlet branch should be read as one theorem-clean way to parameterize a portion of the transport budget.
+
+\begin{corollary}[Active-support field-level microlocal propagation bound]
+\label{cor:field-level-mpt}
+Assume Theorem~\ref{thm:wave-mino-core}.  Also assume that the synthesis map $W_h^\ast:\ell^2(\Gamma_h)\to L^2(\R^d)$ has upper frame bound $B_W$. Let
+\begin{align*}
+E_{h,K,P}
+={}&
+C_{\mathrm{tr}}K\bigl(h^{-1/2}P_{\mathrm{tr}}^{-r/m_\Omega}+\delta_h\bigr)
++C_{\mathrm{sym}}K P_{\mathrm{sym}}^{-r/(m_\Omega+q_{\mathrm{loc}})}\\
+&+C_{\mathrm{res}}\eps_{\mathrm{res}}
++C_{\mathrm{tail}}K^{1-N/q}
++C_{\mathrm{frame}}E_{\mathrm{frame}}(h)
++C_{\mathrm{asymp}}E_{\mathrm{asymp}}(h,M)
++C_{\mathrm{cov}}\delta_h .
+\end{align*}
+Let $\mathcal P_h=W_h^\ast W_h$ and define $E_{\mathrm{proj}}^{\mathrm{in}}(u,t)$, $E_{\mathrm{proj}}^{\mathrm{out}}(u,t)$, $E_{\mathrm{tsyn}}(u,t)$, $E_{\mathrm{car}}(u,t)$, and $E_{\mathrm{land},\theta}(u,t)$ as in Theorem~\ref{thm:wave-mino-core}.
+Then for every $u$ with packet coefficients $a=W_hu$,
+\[
+\begin{aligned}
+&\|\widetilde W_{h,\widehat\kappa,\mathrm{car}}^{\ast}
+\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+-U_+(t)u\|_{L^2} \\
+&\qquad \le
+B_W E_{h,K,P}\,\|W_hu\|_{\ell^2}
++E_{\mathrm{proj}}^{\mathrm{in}}(u,t)
++E_{\mathrm{proj}}^{\mathrm{out}}(u,t) \\
+&\qquad\quad
++E_{\mathrm{tsyn}}(u,t)
++E_{\mathrm{car}}(u,t).
+\end{aligned}
+\]
+If the packet error is supported on at most $s$ active packets and obeys a pointwise envelope $E_\infty(a)$, then the sharper active-support estimate
+\[
+\begin{aligned}
+&\|\widetilde W_{h,\widehat\kappa,\mathrm{car}}^{\ast}
+\mathcal M_{h,K,P}^{\mathrm{core}}(t)W_hu
+-U_+(t)u\|_{L^2} \\
+&\qquad \le
+B_W\sqrt{s}\,E_\infty(a)
++E_{\mathrm{proj}}^{\mathrm{in}}(u,t)
++E_{\mathrm{proj}}^{\mathrm{out}}(u,t) \\
+&\qquad\quad
++E_{\mathrm{tsyn}}(u,t)
++E_{\mathrm{car}}(u,t)
+\end{aligned}
+\]
+also holds.
+For the learned admissible landing map, replace $E_{\mathrm{tsyn}}+E_{\mathrm{car}}$ by $E_{\mathrm{land},\theta}$ in either displayed estimate.
+\end{corollary}
+
+\begin{proof}
+The first estimate follows from Theorem~\ref{thm:wave-mino-core}. For the active-support estimate, apply the synthesis bound and the norm chain
+\[
+\|W_h^\ast e\|_{L^2}\le B_W\|e\|_{\ell^2},
+\]
+with $e=(\mathcal M_{h,K,P}^{\mathrm{core}}(t)-K_h(t))W_hu$, and use $\|e\|_{\ell^2}\le \sqrt{s}\|e\|_{\ell^\infty}$. The two projection defects, transported-synthesis defect, carrier-channel term, and optional learned-landing term are then added as in the theorem.
+\end{proof}
+
+\begin{corollary}[Rate balancing for field-level convergence]
+\label{cor:rate-balancing}
+Let $h\downarrow0$ and allow the stencil and branch budgets to depend on $h$.  Under the hypotheses of Theorem~\ref{thm:wave-mino-core}, suppose
+\[
+K(h)\to\infty,\qquad
+K(h)\delta_h\to0,\qquad
+K(h)h^{-1/2}P_{\mathrm{tr}}(h)^{-r/m_\Omega}\to0,
+\]
+\[
+K(h)P_{\mathrm{sym}}(h)^{-r/(m_\Omega+q_{\mathrm{loc}})}\to0,\qquad
+\eps_{\mathrm{res}}(h)\to0,\qquad
+K(h)^{1-N/q}\to0,
+\]
+and $E_{\mathrm{frame}}(h)+E_{\mathrm{asymp}}(h,M)+\delta_h\to0$.  If, for the input family under consideration, $E_{\mathrm{proj}}^{\mathrm{in}}(u_h,t)+E_{\mathrm{proj}}^{\mathrm{out}}(u_h,t)\to0$ and $\|W_hu_h\|_{\ell^2}$ remains bounded, then
+\[
+\|W_h^\ast\mathcal M_{h,K(h),P(h)}^{\mathrm{core}}(t)W_hu_h-U_+(t)u_h\|_{L^2}
+\to0.
+\]
+\end{corollary}
+
+\begin{proof}
+Under the displayed scaling assumptions every term in $E_{h,K,P}$ tends to zero.  The field-level estimate in Theorem~\ref{thm:wave-mino-core} then gives convergence after adding the vanishing projection defects.
+\end{proof}
+
+The discrete transplantation principle applies exactly as above. One picks a time-step operator $K_{h,\Delta t}$, analyzes it in a packet basis, and checks whether the realized matrix lies near the transported-symbol class. In this setting transport error is genuinely a wavefront error: it measures how much the learned packet motion departs from the discrete propagation law.
+
+This is also the PDE family in which Theorem~\ref{thm:cross-resolution} is easiest to interpret. For nested packet systems at scales $h$ and $2h$, the reference transfer defect
+\[
+\|P_{2h\to h}\transportref_{2h}R_{h\to 2h}a_h - \transportref_h a_h\|_{\ell^1}
+\]
+measures how much the packetized short-time propagator changes when the phase-space covering is refined. Standard microlocal almost-diagonalization heuristics suggest that this defect should decay with packet radius and time step away from caustics and branch splitting. The theorem therefore turns wave-resolution transfer into a quantitative two-term problem: one term for coarse learned error and one term for the intrinsic packetization defect of the propagator itself.
+The new bounded-stencil viewpoint sharpens this interpretation further: the reference defect is exactly the error made when the fine packet matrix is compressed into a coarse canonical tube and then lifted back. The Lean file \codepath{WaveTransfer.lean} records this finite bridge in the same language as the scale-indexed theorem.
+
+\begin{corollary}[Local-window Helmholtz parametrix corollary]
+\label{cor:helmholtz-window}
+Suppose a variable-coefficient Helmholtz resolvent is microlocally represented on a local frequency window by a finite superposition of short-time canonical-graph pieces with the same packet geometry assumptions as Theorem~\ref{thm:wave-mino-core}. Then the packet realization of the windowed resolvent satisfies the same \MiNO-Core approximation law, up to constants that additionally depend on the window partition and the local parametrix amplitudes.
+\end{corollary}
+
+\begin{proof}
+On each local window, the Helmholtz parametrix is treated as a finite sum of canonical-graph pieces. Apply Theorem~\ref{thm:wave-mino-core} to each piece and sum the resulting constants across the partition of unity. The bounded number of window pieces is absorbed into the aggregate constants.
+\end{proof}
+
+\subsection{Darcy and elliptic smoothing}
+
+The Darcy map is not high-frequency transport dominated. It is primarily elliptic and smoothing. This does not make it non-microlocal. It puts it in the pseudodifferential regime of the calculus.
+
+For a uniformly elliptic operator such as
+\[
+Lu=-\nabla\cdot(A(x)\nabla u),
+\]
+the parametrix is microlocally a pseudodifferential operator of negative order. Its principal inverse symbol has the form
+\[
+q_{-2}(x,\xi)\simeq (\xi^\top A(x)\xi)^{-1}
+\]
+on the elliptic cone. The associated canonical relation is the identity relation, not a nontrivial flow. Therefore, for a Darcy-type elliptic map, the packet-basis matrix is expected to be close to an identity-canonical local symbol action with smoothing residuals:
+\[
+(\mathcal K_h a)_i \approx m_h(x_i,\xi_i)a_i+\rho_i(a).
+\]
+In the language of Proposition~\ref{prop:low-frequency-reduction}, the transport budget is near zero because $\kappa=\mathrm{id}$, while the symbol and smoothing budgets carry the approximation burden. This is the elliptic specialization of the same microlocal packet calculus.
+
+\subsection{One-step linearized Navier--Stokes}
+
+For a one-step linearized Navier--Stokes update around a local background velocity field, one can decompose the step into an advection-diffusion structure. The advection part is transport dominated, while the diffusion part acts like a dissipative symbol. In packet coordinates this is a natural mixed regime:
+\begin{itemize}
+\item the advection component pushes packets in position and frequency;
+\item the diffusion component damps higher frequencies through a dissipative symbol, locally of the form $\exp[-\Delta t\,q(x,\xi)]$;
+\item nonlinear closure and truncation are absorbed into the residual term.
+\end{itemize}
+This is precisely the kind of setting where the packet-budget spine is useful. It says that the model should be judged separately on transport, symbol, and residual quality, rather than through a single opaque operator error.
+
+\subsection{Role of the PDE Connection}
+
+The PDE layer has a specific role.  It connects classical microlocal structure to the finite packet theorem by proving:
+\begin{enumerate}
+\item a finite landing lemma for transported-symbol packet operators;
+\item an operator-level packet-matrix transfer from packet-basis discretizations to the theorem;
+\item an explicit-rate short-time wave-family approximation theorem for \MiNO-Core, plus a local-window Helmholtz corollary;
+\item explicit PDE-specific explanations of how the same transplantation should be instantiated in other families.
+\end{enumerate}
+The continuous reduction theorem is built from standard microlocal ingredients; the finite landing algebra is machine-checked; and the $\ell^2$ packet-matrix transfer is the interface where the two meet.  This is the level needed for the present architecture paper: it justifies the sparse canonical packet-matrix primitive, identifies the relevant error budgets, and separates short-time wave propagation from the larger calculus program around Egorov consistency, caustics, and operator microscopy.
