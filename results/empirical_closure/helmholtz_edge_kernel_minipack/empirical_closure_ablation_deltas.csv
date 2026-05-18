@@ -1,0 +1,4 @@
+ablation,baseline_relative_l2,candidate_relative_l2,delta_packet_consistency,delta_phase_error,delta_relative_l2,delta_type,loss_config,scenario
+no_symbol,0.612490102648735,0.5971608261267344,-0.028603067000706972,0.07994437217712402,-0.015329276522000668,ablation_vs_full,proxy_0.20_0.05,helmholtz_highk_positive
+no_transport,0.612490102648735,0.6162019670009613,-0.004668747385342897,-0.013023028771082634,0.0037118643522262573,ablation_vs_full,proxy_0.20_0.05,helmholtz_highk_positive
+no_transport_no_carrier,0.612490102648735,0.9048943370580673,0.31769449015458423,-0.020205050706863403,0.2924042344093323,ablation_vs_full,proxy_0.20_0.05,helmholtz_highk_positive

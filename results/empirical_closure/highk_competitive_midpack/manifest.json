@@ -1,0 +1,68 @@
+﻿{
+    "campaign":  "helmholtz_highk_8gb",
+    "scenarios":  [
+                      "helmholtz_highk_positive"
+                  ],
+    "seeds":  [
+                  7
+              ],
+    "loss_configs":  [
+                         "field_only"
+                     ],
+    "ablations":  [
+                      "full"
+                  ],
+    "epochs":  12,
+    "batch_size":  1,
+    "hardware_profile":  "local_smoke",
+    "helmholtz_profile":  "competitive_8gb",
+    "transport_parameterization":  "hamiltonian_verlet",
+    "frame_type":  "directional_gabor",
+    "symbol_parameterization":  "helmholtz_resolvent",
+    "helmholtz_shell_radius":  0.0,
+    "helmholtz_refractive_index":  1.0,
+    "helmholtz_absorption":  0.08,
+    "helmholtz_resolvent_cap":  8.0,
+    "helmholtz_residual_loss_weight":  0.015,
+    "helmholtz_residual_wavenumber":  12.0,
+    "complex_pair_loss_weight":  0.03,
+    "complex_phase_loss_weight":  0.01,
+    "sparse_topk":  true,
+    "canonical_loss_weight":  0.0,
+    "symbol_order_loss_weight":  0.0,
+    "symbol_order_target":  0.0,
+    "symbol_seminorm_loss_weight":  0.0,
+    "symbol_seminorm_target":  0.0,
+    "packet_space_loss_weight":  0.0,
+    "highfreq_core_loss_weight":  0.0,
+    "metadata_flow_loss_weight":  0.0,
+    "highfreq_cutoff":  0.12,
+    "wavefront_confidence_scale":  2.5,
+    "refine_lowpass_cutoff":  0.12,
+    "transport_highpass_cutoff":  0.12,
+    "skip_lowpass_cutoff":  0.12,
+    "transported_synthesis_scale":  1.0,
+    "transported_input_scale":  1.0,
+    "transported_decoder_channels":  4,
+    "transported_decoder_scale":  1.0,
+    "token_refine_scale":  0.0,
+    "num_canonical_branches":  1,
+    "branch_routing":  "metadata_frequency_softmax",
+    "branch_prior_strength":  1.5,
+    "branch_entropy_weight":  0.03,
+    "branch_diversity_weight":  0.05,
+    "field_corrector":  "hybrid",
+    "field_corrector_scale":  1.0,
+    "field_corrector_width":  64,
+    "core_warmup_epochs":  0,
+    "freeze_refinement_epochs":  0,
+    "runtime_flags":  {
+                          "device":  "cuda",
+                          "tf32":  true,
+                          "cudnn_benchmark":  true
+                      },
+    "device":  "cuda",
+    "runtime_seconds":  777.9527406999987,
+    "output_dir":  "generated/empirical_closure\\highk_competitive_midpack",
+    "rows":  1
+}

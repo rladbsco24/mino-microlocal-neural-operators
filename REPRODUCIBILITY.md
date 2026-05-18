@@ -1,6 +1,6 @@
 # Reproducibility Checklist
 
-This file records the intended source-only repository workflow.  Large generated artifacts are excluded from Git and should be attached separately when preparing a formal artifact package.
+This repository tracks source code, tests, finite certificates, Lean files, configuration files, and curated result summaries.  Large raw experiment outputs remain local under `generated/` unless they are promoted into `results/`.
 
 ## Environment
 
@@ -16,27 +16,18 @@ cd lean
 lake build
 ```
 
-Manuscript:
-
-```powershell
-cd manuscript/jmlr
-bibtex mino_jmlr
-pdflatex -interaction=nonstopmode mino_jmlr.tex
-pdflatex -interaction=nonstopmode mino_jmlr.tex
-```
-
 ## Main Campaigns
 
-Mechanism-identifiability:
+Mechanism-identifiability controls:
 
 ```powershell
 python scripts/run_mino_empirical_closure.py --campaign branch_id_v3_controls --skip-existing --device cuda
 ```
 
-Learned landing controls:
+Learned-landing controls:
 
 ```powershell
-python scripts/run_mino_empirical_closure.py --campaign branch_id_v3 --skip-existing --device cuda
+python scripts/run_mino_empirical_closure.py --campaign learned_landing_controls --skip-existing --device cuda
 ```
 
 High-k Helmholtz diagnostic:
@@ -45,22 +36,33 @@ High-k Helmholtz diagnostic:
 python scripts/run_mino_empirical_closure.py --campaign helmholtz_highk_8gb --skip-existing --device cuda
 ```
 
-High-k flagship protocol:
+High-k flagship protocol, if hardware allows:
 
 ```powershell
 python scripts/run_mino_empirical_closure.py --campaign helmholtz_highk_flagship --skip-existing --device cuda
 ```
 
-## Artifact Packaging
+Experiment index:
 
-For a formal artifact release, include:
+```powershell
+python scripts/collect_mino_experiments.py --output generated/experiment_index
+```
+
+## Curated Results
+
+The tracked `results/` tree contains CSV summaries, manifests, and selected run indexes.  It is not a complete raw-run archive.  Re-run campaigns into `generated/`, inspect the outputs, then copy only stable CSV/manifest artifacts into `results/`.
+
+## Artifact Release Checklist
+
+For a formal external artifact release, include:
 
 - source repository commit hash;
+- exact command log for each campaign;
+- hardware, CUDA, and driver details;
 - selected `generated/**/empirical_closure_results.csv` files;
 - selected summary CSV files;
-- exact command log for each campaign;
-- hardware description;
+- raw per-seed JSON outputs when required to audit aggregation;
 - Lean build log;
-- manuscript PDF compiled from the same commit.
+- Python environment lock file or package-version dump.
 
 Do not commit transient checkpoints, raw caches, or long-running log directories to the source repository.

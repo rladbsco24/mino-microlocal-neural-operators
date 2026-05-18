@@ -1914,11 +1914,11 @@ MicrolocalNeuralOperator = MicrolocalNeuralOperatorCore
 
 
 def _carrier_bound_model_kwargs(model_kwargs: dict[str, object] | None = None) -> dict[str, object]:
-    """Defaults for the paper-defined carrier-bound MiNO architecture.
+    """Defaults for the reference carrier-bound MiNO architecture.
 
     Direct class constructors keep conservative legacy defaults so old scripts can
-    opt into exact historical settings. The public model builder maps the MiNO
-    names used in the manuscript to the theorem-aligned carrier-bound profile.
+    opt into exact historical settings. The public model builder maps named MiNO
+    variants to the theorem-facing carrier-bound profile.
     """
 
     kwargs = dict(model_kwargs or {})

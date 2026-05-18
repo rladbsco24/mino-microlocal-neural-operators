@@ -17,7 +17,8 @@ dist/
 venv/
 env/
 
-# Experiment outputs and large generated artifacts
+# Experiment outputs and large generated artifacts.
+# Curated CSV/manifests that should be published live under results/.
 generated/
 tmp/
 *.pt

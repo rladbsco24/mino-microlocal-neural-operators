@@ -173,8 +173,6 @@ def main() -> None:
 
     if input_panel is not None and target_panel is not None:
         save_wave_figure(output_dir / "wave_ablation_prediction.png", input_panel, target_panel, prediction_panels)
-        manuscript_figure = ROOT / "manuscript" / "jmlr" / "figures" / "wave_ablation_prediction.png"
-        save_wave_figure(manuscript_figure, input_panel, target_panel, prediction_panels)
 
     print(f"Wrote {csv_path}")
 

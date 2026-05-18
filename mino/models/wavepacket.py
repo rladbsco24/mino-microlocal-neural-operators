@@ -498,8 +498,7 @@ class AnisotropicGaborWavepacketTokenizer(nn.Module):
     """Multi-orientation rectangular Gabor tokenizer.
 
     The packet family is intentionally modest: it gives MiNO an executable
-    anisotropic frame candidate for mechanism tests, while the manuscript keeps
-    curvelets/shearlets as a separate future frame class.
+    anisotropic frame candidate for mechanism and high-frequency stress tests.
     """
 
     def __init__(
